@@ -1,0 +1,43 @@
+{
+  "name": "tancat-system",
+  "version": "1.0.0",
+  "description": "Sistema de Administración Complejo Deportivo TANCAT",
+  "main": "index.js",
+  "scripts": {
+    "dev": "echo \"🚀 Inicia Backend y Frontend por separado:\" && echo \"Terminal 1: npm run dev:backend\" && echo \"Terminal 2: npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "build": "echo 'No build process needed for vanilla JS frontend'",
+    "start": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm start",
+    "clean": "rm -rf backend/node_modules frontend/node_modules node_modules",
+    "setup": "npm run install:all && echo '✅ Proyecto configurado. Ahora configura tu archivo .env'",
+    "test": "echo \"Tests no configurados aún\" && exit 0",
+    "help": "echo \"📋 Comandos disponibles:\" && echo \"npm run dev:backend  - Inicia backend\" && echo \"npm run dev:frontend - Inicia frontend\" && echo \"npm run setup        - Instala dependencias\""
+  },
+  "keywords": [
+    "tancat",
+    "sistema",
+    "administracion",
+    "complejo-deportivo",
+    "padel",
+    "reservas",
+    "nodejs",
+    "javascript"
+  ],
+  "author": "Tu Nombre <tu-email@ejemplo.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tu-usuario/tancat-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tu-usuario/tancat-system/issues"
+  },
+  "homepage": "https://github.com/tu-usuario/tancat-system#readme"
+}

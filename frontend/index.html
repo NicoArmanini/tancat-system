@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TANCAT - Complejo Deportivo</title>
+    <link href="../assets/css/cliente-main.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Header con navegación -->
+    <header class="main-header">
+        <div class="container">
+            <div class="logo-section">
+                <div class="logo">TANCAT</div>
+                <div class="tagline">Complejo Deportivo</div>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="#inicio" class="nav-link active">Inicio</a></li>
+                    <li><a href="#reservas" class="nav-link">Reservar Cancha</a></li>
+                    <li><a href="#torneos" class="nav-link">Torneos</a></li>
+                    <li><a href="#contacto" class="nav-link">Contacto</a></li>
+                    <li><a href="/login.html" class="nav-link login-btn">Administración</a></li>
+                </ul>
+            </nav>
+            <div class="mobile-menu-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section" id="inicio">
+        <div class="hero-content">
+            <h1>Bienvenidos a TANCAT</h1>
+            <p>El complejo deportivo líder en Córdoba desde 1991</p>
+            <div class="hero-buttons">
+                <a href="#reservas" class="btn btn-primary">Reservar Cancha</a>
+                <a href="#sedes" class="btn btn-secondary">Nuestras Sedes</a>
+            </div>
+        </div>
+        <div class="hero-overlay"></div>
+    </section>
+
+    <!-- Información de Sedes -->
+    <section class="sedes-section" id="sedes">
+        <div class="container">
+            <h2 class="section-title">Nuestras Sedes</h2>
+            <div class="sedes-grid">
+                <!-- Sede Jacinto Ríos -->
+                <div class="sede-card">
+                    <div class="sede-header">
+                        <h3>Sede Jacinto Ríos</h3>
+                        <span class="sede-badge principal">Sede Principal</span>
+                    </div>
+                    <div class="sede-info">
+                        <div class="info-item">
+                            <span class="icon">📍</span>
+                            <span>Jacinto Ríos 232, Córdoba</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="icon">🕒</span>
+                            <span>Lun-Sáb: 9:00-00:00 / Dom: 17:00-23:00</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="icon">📞</span>
+                            <span>Reservas presenciales y WhatsApp</span>
+                        </div>
+                    </div>
+                    <div class="sede-deportes">
+                        <h4>Instalaciones:</h4>
+                        <ul>
+                            <li>2 canchas de Pádel</li>
+                            <li>1 cancha de Básquet (3v3)</li>
+                            <li>3 mesas de Ping Pong</li>
+                            <li>Máquinas Arcade</li>
+                            <li>Metegol</li>
+                            <li>Tienda deportiva</li>
+                            <li>Parrilla y salón para eventos</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Sede Rincón -->
+                <div class="sede-card">
+                    <div class="sede-header">
+                        <h3>Sede Rincón</h3>
+                        <span class="sede-badge sucursal">Sucursal</span>
+                    </div>
+                    <div class="sede-info">
+                        <div class="info-item">
+                            <span class="icon">📍</span>
+                            <span>Rincón 985, Córdoba</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="icon">🕒</span>
+                            <span>Lun-Sáb: 17:00-00:00 / Dom: Cerrado</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="icon">ℹ️</span>
+                            <span>Reservas desde Sede Principal</span>
+                        </div>
+                    </div>
+                    <div class="sede-deportes">
+                        <h4>Instalaciones:</h4>
+                        <ul>
+                            <li>2 canchas de Pádel</li>
+                            <li>1 cancha de Básquet completa</li>
+                            <li>1 cancha de Vóley</li>
+                            <li>1 mesa de Ping Pong</li>
+                            <li>1 cancha de Squash</li>
+                            <li>Metegol</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Deportes Disponibles -->
+    <section class="deportes-section">
+        <div class="container">
+            <h2 class="section-title">Deportes Disponibles</h2>
+            <div class="deportes-grid">
+                <div class="deporte-card featured">
+                    <div class="deporte-icon">🏓</div>
+                    <h3>Pádel</h3>
+                    <p>Nuestro deporte principal. 4 canchas con césped sintético renovado en 2022.</p>
+                    <div class="deporte-details">
+                        <span>Duración: 90 min</span>
+                        <span>Incluye clases</span>
+                    </div>
+                </div>
+                <div class="deporte-card">
+                    <div class="deporte-icon">🏀</div>
+                    <h3>Básquet</h3>
+                    <p>Canchas 3v3 y completa disponibles en ambas sedes.</p>
+                    <div class="deporte-details">
+                        <span>Duración: 60 min</span>
+                    </div>
+                </div>
+                <div class="deporte-card">
+                    <div class="deporte-icon">🏓</div>
+                    <h3>Ping Pong</h3>
+                    <p>4 mesas disponibles para toda la familia.</p>
+                    <div class="deporte-details">
+                        <span>Duración: 30 min</span>
+                    </div>
+                </div>
+                <div class="deporte-card">
+                    <div class="deporte-icon">🎾</div>
+                    <h3>Squash</h3>
+                    <p>Cancha profesional en Sede Rincón.</p>
+                    <div class="deporte-details">
+                        <span>Duración: 45 min</span>
+                    </div>
+                </div>
+                <div class="deporte-card">
+                    <div class="deporte-icon">🏐</div>
+                    <h3>Vóley</h3>
+                    <p>Cancha compartida con básquet en Sede Rincón.</p>
+                    <div class="deporte-details">
+                        <span>Duración: 60 min</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Servicios Adicionales -->
+    <section class="servicios-section">
+        <div class="container">
+            <h2 class="section-title">Servicios Adicionales</h2>
+            <div class="servicios-grid">
+                <div class="servicio-item">
+                    <div class="servicio-icon">🛍️</div>
+                    <h4>Tienda Deportiva</h4>
+                    <p>Paletas, pelotas, indumentaria y accesorios deportivos.</p>
+                </div>
+                <div class="servicio-item">
+                    <div class="servicio-icon">🥤</div>
+                    <h4>Bebidas</h4>
+                    <p>Variedad de bebidas refrescantes y deportivas.</p>
+                </div>
+                <div class="servicio-item">
+                    <div class="servicio-icon">🎮</div>
+                    <h4>Entretenimiento</h4>
+                    <p>Máquinas arcade y metegol para toda la familia.</p>
+                </div>
+                <div class="servicio-item">
+                    <div class="servicio-icon">🍖</div>
+                    <h4>Eventos</h4>
+                    <p>Parrilla y salón para cumpleaños y reuniones.</p>
+                </div>
+                <div class="servicio-item">
+                    <div class="servicio-icon">🏆</div>
+                    <h4>Torneos</h4>
+                    <p>Organizamos torneos regulares de pádel.</p>
+                </div>
+                <div class="servicio-item">
+                    <div class="servicio-icon">👨‍🏫</div>
+                    <h4>Clases</h4>
+                    <p>Clases de pádel con instructores profesionales.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de Reservas -->
+    <section class="reservas-section" id="reservas">
+        <div class="container">
+            <div class="reservas-content">
+                <div class="reservas-text">
+                    <h2>¿Listo para jugar?</h2>
+                    <p>Reserva tu cancha de forma rápida y sencilla. Disponemos de turnos flexibles para que disfrutes del deporte cuando quieras.</p>
+                    <ul class="reservas-features">
+                        <li>✅ Reservas presenciales en Sede Principal</li>
+                        <li>✅ También por WhatsApp</li>
+                        <li>✅ Pago total o con seña</li>
+                        <li>✅ Horarios amplios todos los días</li>
+                    </ul>
+                </div>
+                <div class="reservas-form">
+                    <h3>Consulta Disponibilidad</h3>
+                    <form id="consultaForm">
+                        <div class="form-group">
+                            <label for="sede">Sede</label>
+                            <select id="sede" name="sede" required>
+                                <option value="">Selecciona una sede</option>
+                                <option value="jacinto-rios">Jacinto Ríos 232</option>
+                                <option value="rincon">Rincón 985</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="deporte">Deporte</label>
+                            <select id="deporte" name="deporte" required>
+                                <option value="">Selecciona un deporte</option>
+                                <option value="padel">Pádel</option>
+                                <option value="basquet">Básquet</option>
+                                <option value="ping-pong">Ping Pong</option>
+                                <option value="squash">Squash</option>
+                                <option value="voley">Vóley</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="fecha">Fecha</label>
+                            <input type="date" id="fecha" name="fecha" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary full-width">
+                            Ver Disponibilidad
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>TANCAT</h4>
+                    <p>Complejo deportivo con más de 30 años de experiencia en Córdoba.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Sedes</h4>
+                    <p><strong>Jacinto Ríos:</strong> Jacinto Ríos 232</p>
+                    <p><strong>Rincón:</strong> Rincón 985</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Horarios</h4>
+                    <p><strong>Lun-Sáb:</strong> Consultar por sede</p>
+                    <p><strong>Domingo:</strong> 17:00-23:00</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Contacto</h4>
+                    <p>Reservas presenciales</p>
+                    <p>WhatsApp disponible</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 TANCAT - Complejo Deportivo. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="../assets/js/cliente-main.js"></script>
+</body>
+</html>

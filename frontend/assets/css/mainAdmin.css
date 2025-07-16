@@ -1,0 +1,768 @@
+/* frontend/assets/css/dashboard.css */
+
+/* =====================================
+   DASHBOARD GENERAL
+===================================== */
+
+.dashboard-container {
+    min-height: 100vh;
+    background: #f5f6fa;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =====================================
+   HEADER
+===================================== */
+
+.dashboard-header {
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 15px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-logo {
+    width: 40px;
+    height: auto;
+}
+
+.logo-section h1 {
+    color: #667eea;
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.system-subtitle {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.user-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-info {
+    text-align: right;
+}
+
+.user-name {
+    display: block;
+    font-weight: 600;
+    color: #333;
+}
+
+.user-role {
+    display: block;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-icon {
+    position: relative;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* =====================================
+   NAVEGACIÓN
+===================================== */
+
+.main-navigation {
+    background: white;
+    border-bottom: 1px solid #e1e5e9;
+    padding: 0;
+}
+
+.nav-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    padding: 15px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+
+.nav-item:hover {
+    color: #667eea;
+    background: #f8f9ff;
+}
+
+.nav-item.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    background: #f8f9ff;
+}
+
+/* =====================================
+   CONTENIDO PRINCIPAL
+===================================== */
+
+.dashboard-main {
+    flex: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 30px 20px;
+    width: 100%;
+}
+
+/* =====================================
+   ESTADÍSTICAS RÁPIDAS
+===================================== */
+
+.quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9ff;
+    border-radius: 12px;
+}
+
+.stat-info h3 {
+    margin: 0 0 5px 0;
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.stat-number {
+    margin: 0 0 5px 0;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+    transition: transform 0.3s;
+}
+
+.stat-change {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.stat-change.positive {
+    color: #27ae60;
+}
+
+.stat-change.negative {
+    color: #e74c3c;
+}
+
+.stat-change.neutral {
+    color: #666;
+}
+
+/* =====================================
+   WIDGETS
+===================================== */
+
+.dashboard-widgets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 25px;
+}
+
+.widget {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.widget-header {
+    padding: 20px 25px 15px;
+    border-bottom: 1px solid #f1f3f4;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.widget-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #333;
+    font-weight: 600;
+}
+
+.widget-content {
+    padding: 20px 25px 25px;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-small:hover {
+    background: #5a6fd8;
+}
+
+/* =====================================
+   WIDGET DE RESERVAS
+===================================== */
+
+.reserva-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.reserva-item:last-child {
+    border-bottom: none;
+}
+
+.reserva-time {
+    font-weight: 600;
+    color: #667eea;
+    min-width: 100px;
+    font-size: 0.9rem;
+}
+
+.reserva-info {
+    flex: 1;
+}
+
+.reserva-info strong {
+    display: block;
+    margin-bottom: 2px;
+    color: #333;
+}
+
+.sede-tag {
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+
+.reserva-status {
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: center;
+    min-width: 80px;
+}
+
+.reserva-status.confirmada {
+    background: #d4edda;
+    color: #155724;
+}
+
+.reserva-status.pendiente {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.reserva-status.cancelada {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* =====================================
+   WIDGET DE ACCIONES RÁPIDAS
+===================================== */
+
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+.quick-action {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 20px 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.quick-action:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+.qa-icon {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.quick-action span {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* =====================================
+   WIDGET DE SEDES
+===================================== */
+
+.sede-info {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.sede-info:last-child {
+    margin-bottom: 0;
+}
+
+.sede-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.sede-header h4 {
+    margin: 0;
+    color: #333;
+    font-size: 1rem;
+}
+
+.sede-status {
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.sede-status.abierta {
+    background: #d4edda;
+    color: #155724;
+}
+
+.sede-status.cerrada {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.sede-details p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.sede-services {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.service-tag {
+    background: #667eea;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+}
+
+/* =====================================
+   WIDGET DE ACTIVIDAD
+===================================== */
+
+.activity-timeline {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-time {
+    font-size: 0.8rem;
+    color: #666;
+    min-width: 45px;
+    font-weight: 500;
+}
+
+.activity-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.activity-icon.reserva {
+    background: #e3f2fd;
+}
+
+.activity-icon.venta {
+    background: #e8f5e8;
+}
+
+.activity-icon.cliente {
+    background: #fff3e0;
+}
+
+.activity-icon.pago {
+    background: #f3e5f5;
+}
+
+.activity-desc {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.activity-desc strong {
+    color: #333;
+}
+
+.activity-desc small {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+/* =====================================
+   FOOTER
+===================================== */
+
+.dashboard-footer {
+    background: white;
+    border-top: 1px solid #e1e5e9;
+    padding: 15px 0;
+    margin-top: auto;
+}
+
+.footer-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.footer-info {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.footer-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #667eea;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+.status-connected {
+    color: #27ae60;
+}
+
+.status-disconnected {
+    color: #e74c3c;
+}
+
+/* =====================================
+   MODAL DE CANCHAS
+===================================== */
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid #e1e5e9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    padding: 5px;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.canchas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.cancha-card {
+    padding: 15px;
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+}
+
+.cancha-card.libre {
+    background: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.cancha-card.ocupada {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.cancha-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.cancha-numero {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.cancha-deporte {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.cancha-estado {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* =====================================
+   RESPONSIVE
+===================================== */
+
+@media (max-width: 768px) {
+    .header-content {
+        padding: 0 15px;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .logo-section {
+        flex-direction: column;
+        text-align: center;
+        gap: 5px;
+    }
+    
+    .user-section {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .nav-content {
+        padding: 0 15px;
+    }
+    
+    .dashboard-main {
+        padding: 20px 15px;
+    }
+    
+    .quick-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-widgets {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .footer-content {
+        padding: 0 15px;
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .canchas-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-card {
+        padding: 20px 15px;
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+    
+    .reserva-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .reserva-time {
+        min-width: auto;
+    }
+    
+    .quick-actions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .activity-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}

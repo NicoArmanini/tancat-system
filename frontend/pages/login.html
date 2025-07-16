@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TANCAT - Sistema de Administración</title>
+    
+    <!-- CSS Personalizado -->
+    <link href="assets/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
+        <!-- Logo y Header -->
+        <div class="logo-container">
+            <div class="logo">TANCAT</div>
+            <div class="subtitle">Sistema de Administración</div>
+        </div>
+        
+        <!-- Mensaje de Bienvenida -->
+        <div class="welcome-text">
+            <h2>Iniciar Sesión</h2>
+            <p>Accede al sistema de gestión del complejo deportivo</p>
+        </div>
+        
+        <!-- Formulario de Login -->
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Usuario</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    placeholder="Ingresa tu usuario"
+                    required
+                >
+                <div class="error-message" id="usernameError">Por favor ingresa tu usuario</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Ingresa tu contraseña"
+                    required
+                >
+                <div class="error-message" id="passwordError">Por favor ingresa tu contraseña</div>
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">
+                Ingresar al Sistema
+            </button>
+        </form>
+        
+        <!-- Link Olvidé Contraseña -->
+        <div class="forgot-password">
+            <a href="#" id="forgotPasswordLink">¿Olvidaste tu contraseña?</a>
+        </div>
+        
+        <!-- Divider -->
+        <div class="divider">
+            <span>Información del Complejo</span>
+        </div>
+        
+        <!-- Información de Sedes -->
+        <div class="sede-info">
+            <h4>Sede Jacinto Ríos</h4>
+            <p>📍 Jacinto Ríos 232, Córdoba</p>
+            <p>🕒 Lun-Sáb: 9:00-12:00 / Dom: 17:00-23:00</p>
+        </div>
+        
+        <div class="sede-info">
+            <h4>Sede Rincón</h4>
+            <p>📍 Rincón 985, Córdoba</p>
+            <p>🕒 Lun-Sáb: 17:00-00:00 / Dom: Cerrado</p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer-info">
+            <p>© 2025 TANCAT - Complejo Deportivo</p>
+            <p>Sistema de Administración v1.0</p>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/apiClient.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/main.js"></script>
+</body>
+</html>

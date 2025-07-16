@@ -1,0 +1,307 @@
+    <!-- frontend/pages/main.html -->
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>TANCAT - Complejo Deportivo</title>
+        
+        <!-- CSS -->
+        <link href="../assets/css/mainAdmin.css" rel="stylesheet">
+        <link href="../assets/css/dashboard.css" rel="stylesheet">
+    </head>
+
+    <div class="dashboard-container">
+        <!-- Header con navegación -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="./assets/images/tancat-logo.png" alt="TANCAT" class="header-logo" onerror="this.style.display='none'">
+                    <h1>TANCAT</h1>
+                    <span class="system-subtitle">Sistema de Administración</span>
+                </div>
+                
+                <div class="user-section">
+                    <div class="user-info">
+                        <span class="user-name" id="userName">Usuario</span>
+                        <span class="user-role" id="userRole">Rol</span>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn btn-icon" id="notificationsBtn" title="Notificaciones">
+                            🔔
+                            <span class="notification-badge" id="notificationBadge">3</span>
+                        </button>
+                        <button class="btn btn-secondary" onclick="logout()">
+                            🚪 Cerrar Sesión
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navegación principal -->
+        <nav class="main-navigation">
+            <div class="nav-content">
+                <button class="nav-item active" data-nav-item="/main" onclick="navigateTo('/main')">
+                    🏠 Dashboard
+                </button>
+                <button class="nav-item" data-nav-item="/reservas" onclick="navigateTo('/reservas')">
+                    📅 Reservas
+                </button>
+                <button class="nav-item" data-nav-item="/clientes" onclick="navigateTo('/clientes')">
+                    👥 Clientes
+                </button>
+                <button class="nav-item" data-nav-item="/ventas" onclick="navigateTo('/ventas')">
+                    💰 Ventas
+                </button>
+                <button class="nav-item" data-nav-item="/torneos" onclick="navigateTo('/torneos')">
+                    🏆 Torneos
+                </button>
+                <button class="nav-item" data-nav-item="/inventario" onclick="navigateTo('/inventario')">
+                    📦 Inventario
+                </button>
+                <button class="nav-item" data-nav-item="/reportes" onclick="navigateTo('/reportes')">
+                    📊 Reportes
+                </button>
+            </div>
+        </nav>
+
+        <!-- Contenido principal del dashboard -->
+        <main class="dashboard-main">
+            <!-- Estadísticas rápidas -->
+            <section class="quick-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-info">
+                        <h3>Reservas Hoy</h3>
+                        <p class="stat-number" id="reservasHoy">12</p>
+                        <span class="stat-change positive">+3 vs ayer</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <h3>Clientes Activos</h3>
+                        <p class="stat-number" id="clientesActivos">487</p>
+                        <span class="stat-change positive">+15 este mes</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <h3>Ventas del Día</h3>
+                        <p class="stat-number" id="ventasDelDia">$48,500</p>
+                        <span class="stat-change positive">+12% vs ayer</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">🏓</div>
+                    <div class="stat-info">
+                        <h3>Canchas Disponibles</h3>
+                        <p class="stat-number" id="canchasDisponibles">6/8</p>
+                        <span class="stat-change neutral">75% ocupación</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Panel principal con widgets -->
+            <section class="dashboard-widgets">
+                <!-- Widget de reservas del día -->
+                <div class="widget reservas-widget">
+                    <div class="widget-header">
+                        <h3>📅 Reservas de Hoy</h3>
+                        <button class="btn btn-small" onclick="navigateTo('/reservas')">Ver todas</button>
+                    </div>
+                    <div class="widget-content">
+                        <div class="reserva-item">
+                            <div class="reserva-time">09:00 - 10:30</div>
+                            <div class="reserva-info">
+                                <strong>Juan Pérez</strong> - Cancha 1 Pádel
+                                <span class="sede-tag">Jacinto Ríos</span>
+                            </div>
+                            <div class="reserva-status confirmada">Confirmada</div>
+                        </div>
+                        
+                        <div class="reserva-item">
+                            <div class="reserva-time">11:00 - 12:00</div>
+                            <div class="reserva-info">
+                                <strong>María García</strong> - Cancha 1 Básquet
+                                <span class="sede-tag">Jacinto Ríos</span>
+                            </div>
+                            <div class="reserva-status confirmada">Confirmada</div>
+                        </div>
+                        
+                        <div class="reserva-item">
+                            <div class="reserva-time">14:30 - 16:00</div>
+                            <div class="reserva-info">
+                                <strong>Carlos López</strong> - Cancha 2 Pádel
+                                <span class="sede-tag">Rincón</span>
+                            </div>
+                            <div class="reserva-status pendiente">Pendiente pago</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widget de acciones rápidas -->
+                <div class="widget quick-actions-widget">
+                    <div class="widget-header">
+                        <h3>⚡ Acciones Rápidas</h3>
+                    </div>
+                    <div class="widget-content">
+                        <div class="quick-actions-grid">
+                            <button class="quick-action" onclick="navigateTo('/reservas')">
+                                <div class="qa-icon">📅</div>
+                                <span>Nueva Reserva</span>
+                            </button>
+                            
+                            <button class="quick-action" onclick="navigateTo('/clientes')">
+                                <div class="qa-icon">👤</div>
+                                <span>Registrar Cliente</span>
+                            </button>
+                            
+                            <button class="quick-action" onclick="navigateTo('/ventas')">
+                                <div class="qa-icon">💰</div>
+                                <span>Nueva Venta</span>
+                            </button>
+                            
+                            <button class="quick-action" onclick="navigateTo('/torneos')">
+                                <div class="qa-icon">🏆</div>
+                                <span>Crear Torneo</span>
+                            </button>
+                            
+                            <button class="quick-action" onclick="showCanchasDisponibles()">
+                                <div class="qa-icon">🏓</div>
+                                <span>Ver Canchas</span>
+                            </button>
+                            
+                            <button class="quick-action" onclick="navigateTo('/reportes')">
+                                <div class="qa-icon">📊</div>
+                                <span>Reportes</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widget de información de sedes -->
+                <div class="widget sedes-widget">
+                    <div class="widget-header">
+                        <h3>🏢 Estado de Sedes</h3>
+                    </div>
+                    <div class="widget-content">
+                        <div class="sede-info">
+                            <div class="sede-header">
+                                <h4>📍 Jacinto Ríos 232</h4>
+                                <span class="sede-status abierta">Abierta</span>
+                            </div>
+                            <div class="sede-details">
+                                <p>Horario: 9:00 - 24:00</p>
+                                <p>Canchas ocupadas: 3/5</p>
+                                <div class="sede-services">
+                                    <span class="service-tag">Pádel</span>
+                                    <span class="service-tag">Básquet</span>
+                                    <span class="service-tag">Ping Pong</span>
+                                    <span class="service-tag">Arcade</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="sede-info">
+                            <div class="sede-header">
+                                <h4>📍 Rincón 985</h4>
+                                <span class="sede-status abierta">Abierta</span>
+                            </div>
+                            <div class="sede-details">
+                                <p>Horario: 17:00 - 24:00</p>
+                                <p>Canchas ocupadas: 2/4</p>
+                                <div class="sede-services">
+                                    <span class="service-tag">Pádel</span>
+                                    <span class="service-tag">Básquet/Vóley</span>
+                                    <span class="service-tag">Squash</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widget de actividad reciente -->
+                <div class="widget activity-widget">
+                    <div class="widget-header">
+                        <h3>📋 Actividad Reciente</h3>
+                    </div>
+                    <div class="widget-content">
+                        <div class="activity-timeline">
+                            <div class="activity-item">
+                                <div class="activity-time">10:45</div>
+                                <div class="activity-icon reserva">📅</div>
+                                <div class="activity-desc">
+                                    Nueva reserva - <strong>Ana Rodríguez</strong>
+                                    <br><small>Cancha 1 Pádel - 15:00-16:30</small>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-time">10:30</div>
+                                <div class="activity-icon venta">💰</div>
+                                <div class="activity-desc">
+                                    Venta registrada - <strong>$3,500</strong>
+                                    <br><small>Paleta + Pelotas - Pedro Martínez</small>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-time">10:15</div>
+                                <div class="activity-icon cliente">👤</div>
+                                <div class="activity-desc">
+                                    Nuevo cliente - <strong>Laura Fernández</strong>
+                                    <br><small>Tel: 351-555-1234</small>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-time">09:50</div>
+                                <div class="activity-icon pago">💳</div>
+                                <div class="activity-desc">
+                                    Pago recibido - <strong>Carlos López</strong>
+                                    <br><small>Reserva 14:30 - $3,200</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer con información -->
+        <footer class="dashboard-footer">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <span>TANCAT v1.0.0</span> | 
+                    <span>Última actualización: <span id="lastUpdate">--</span></span> | 
+                    <span>Conexión: <span id="connectionStatus" class="status-connected">Conectado</span></span>
+                </div>
+                <div class="footer-actions">
+                    <button class="btn btn-link" onclick="showHelp()">Ayuda</button>
+                    <button class="btn btn-link" onclick="showAbout()">Acerca de</button>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal para canchas disponibles -->
+    <div id="canchasModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏓 Estado de Canchas</h3>
+                <button class="modal-close" onclick="closeCanchasModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="canchas-grid" id="canchasGrid">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+</html>
