@@ -1,8 +1,6 @@
-// frontend/server.js
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
 
 const PORT = 5173;
 const HOST = 'localhost';
@@ -18,11 +16,7 @@ const mimeTypes = {
     '.jpeg': 'image/jpeg',
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon',
-    '.woff': 'application/font-woff',
-    '.woff2': 'application/font-woff2',
-    '.ttf': 'application/font-ttf',
-    '.eot': 'application/vnd.ms-fontobject'
+    '.ico': 'image/x-icon'
 };
 
 function getMimeType(filePath) {
@@ -75,10 +69,17 @@ const server = http.createServer((req, res) => {
         pathname = pathname.split('?')[0];
     }
     
-    // Rutas SPA - todas sirven index.html
-    const spaRoutes = ['/', '/login', '/main', '/reservas', '/clientes', '/ventas', '/torneos', '/inventario', '/reportes'];
+    // Rutas principales
+    if (pathname === '/' || pathname === '/index.html') {
+        serveFile(res, path.join(__dirname, 'index.html'));
+        return;
+    }
     
-    if (spaRoutes.includes(pathname)) {
+    // Rutas de páginas
+    const pageRoutes = ['/login', '/dashboard', '/reservas', '/clientes', '/ventas', '/torneos', '/inventario', '/reportes'];
+    
+    if (pageRoutes.includes(pathname)) {
+        // Para SPA, servir siempre index.html y dejar que el JS maneje el routing
         serveFile(res, path.join(__dirname, 'index.html'));
         return;
     }
@@ -119,43 +120,20 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-    const url = `http://${HOST}:${PORT}`;
     console.log(`
-🚀 Frontend TANCAT iniciado exitosamente!
-📍 Servidor corriendo en: ${url}
-🔗 Abrir en navegador: ${url}
+🚀 TANCAT Frontend iniciado!
+📍 URL: http://${HOST}:${PORT}
+🔗 Backend: http://localhost:3000
 ⏰ Iniciado: ${new Date().toISOString()}
 
-📋 Rutas disponibles:
-   ${url}/           - Login
-   ${url}/main       - Dashboard
-   ${url}/reservas   - Reservas
-   ${url}/clientes   - Clientes
-   ${url}/ventas     - Ventas
-   ${url}/torneos    - Torneos
+📋 Páginas disponibles:
+   http://${HOST}:${PORT}/           - Página principal
+   http://${HOST}:${PORT}/login      - Login
+   http://${HOST}:${PORT}/dashboard  - Dashboard
+   http://${HOST}:${PORT}/reservas   - Reservas
 
 🛑 Para detener: Ctrl+C
     `);
-    
-    // Intentar abrir automáticamente en el navegador
-    const platform = process.platform;
-    let command;
-    
-    if (platform === 'win32') {
-        command = `start ${url}`;
-    } else if (platform === 'darwin') {
-        command = `open ${url}`;
-    } else {
-        command = `xdg-open ${url}`;
-    }
-    
-    exec(command, (err) => {
-        if (err) {
-            console.log(`ℹ️  Abre manualmente tu navegador en: ${url}`);
-        } else {
-            console.log('🌐 Navegador abierto automáticamente');
-        }
-    });
 });
 
 // Manejar errores del servidor
@@ -163,9 +141,8 @@ server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
         console.error(`❌ Error: El puerto ${PORT} ya está en uso.`);
         console.log('💡 Soluciones:');
-        console.log('   1. Cierra otras aplicaciones que usen el puerto 5173');
-        console.log('   2. Cambia el puerto en este archivo (línea 6)');
-        console.log('   3. En Windows, ejecuta: netstat -ano | findstr :5173');
+        console.log(`   1. Terminar proceso: kill -9 $(lsof -ti:${PORT})`);
+        console.log('   2. Cambiar puerto en server.js');
     } else {
         console.error('❌ Error del servidor:', err.message);
     }

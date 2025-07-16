@@ -1,20 +1,23 @@
 {
   "name": "tancat-frontend",
   "version": "1.0.0",
-  "description": "Frontend para Sistema TANCAT - Complejo Deportivo",
-  "main": "index.html",
+  "description": "Frontend Sistema TANCAT - Complejo Deportivo",
+  "main": "server.js",
   "scripts": {
-    "dev": "node server.js",
+    "dev": "nodemon server.js",
     "start": "node server.js",
     "serve": "node server.js"
+  },
+  "dependencies": {
+    "nodemon": "^3.0.2"
   },
   "keywords": [
     "tancat",
     "frontend",
-    "deportivo",
-    "spa"
+    "spa",
+    "vanilla-js",
+    "complejo-deportivo"
   ],
-  "author": "Tu Nombre",
-  "license": "MIT",
-  "dependencies": {}
+  "author": "TANCAT Development Team",
+  "license": "MIT"
 }

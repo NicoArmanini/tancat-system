@@ -4,6 +4,7 @@
  * Descripción: Punto de entrada principal del servidor
  */
 
+require('dotenv').config();
 const app = require('./app');
 const { pool } = require('./utils/database');
 
@@ -24,7 +25,7 @@ async function verificarConexionDB() {
         // Verificar conexión con una consulta simple
         const result = await client.query('SELECT NOW() as timestamp, version() as version');
         
-        console.log('✅ Conexión a base de datos exitosa');
+        console.log('✅ Conexión a Supabase/PostgreSQL exitosa');
         console.log(`📅 Timestamp: ${result.rows[0].timestamp}`);
         console.log(`🐘 PostgreSQL: ${result.rows[0].version.split(' ')[1]}`);
         
@@ -35,10 +36,10 @@ async function verificarConexionDB() {
         
         if (NODE_ENV === 'development') {
             console.log('\n📋 Verificaciones sugeridas:');
-            console.log('   1. Verificar que PostgreSQL esté ejecutándose');
-            console.log('   2. Revisar credenciales en archivo .env');
-            console.log('   3. Verificar que la base de datos exista');
-            console.log('   4. Comprobar firewall y permisos de red\n');
+            console.log('   1. Verificar credenciales de Supabase en .env');
+            console.log('   2. Revisar SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY');
+            console.log('   3. Verificar conectividad a internet');
+            console.log('   4. Comprobar que el proyecto Supabase esté activo\n');
         }
         
         return false;
@@ -55,7 +56,8 @@ async function verificarEstructuraDB() {
         // Verificar que existan las tablas principales
         const tablasRequeridas = [
             'sedes', 'deportes', 'canchas', 'turnos', 
-            'clientes', 'empleados', 'reservas', 'productos'
+            'clientes', 'empleados', 'reservas', 'productos',
+            'categorias_productos', 'ventas', 'torneos'
         ];
         
         const result = await client.query(`
@@ -71,9 +73,10 @@ async function verificarEstructuraDB() {
         
         if (tablasFaltantes.length > 0) {
             console.warn('⚠️  Tablas faltantes en la base de datos:', tablasFaltantes);
-            console.log('💡 Ejecuta: npm run migrate para crear las tablas');
+            console.log('💡 Ejecuta el script SQL en Supabase para crear las tablas');
         } else {
             console.log('✅ Estructura de base de datos verificada');
+            console.log(`📊 Tablas encontradas: ${tablaExistentes.length}/${tablasRequeridas.length}`);
         }
         
         client.release();
@@ -85,11 +88,38 @@ async function verificarEstructuraDB() {
 }
 
 // ====================================
+// CONFIGURACIÓN DE CORS ESPECÍFICA
+// ====================================
+function configurarCORS() {
+    const allowedOrigins = [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000'
+    ];
+    
+    if (NODE_ENV === 'production') {
+        // Agregar dominios de producción aquí
+        allowedOrigins.push('https://tu-dominio-produccion.com');
+    }
+    
+    return allowedOrigins;
+}
+
+// ====================================
 // INICIALIZACIÓN DEL SERVIDOR
 // ====================================
 async function iniciarServidor() {
     try {
         console.log('🚀 Iniciando servidor TANCAT...\n');
+        
+        // Mostrar configuración
+        console.log('📋 Configuración:');
+        console.log(`   Entorno: ${NODE_ENV}`);
+        console.log(`   Puerto: ${PORT}`);
+        console.log(`   Host: ${HOST}`);
+        console.log(`   Supabase URL: ${process.env.SUPABASE_URL ? '✅ Configurado' : '❌ No configurado'}`);
+        console.log(`   Service Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurado' : '❌ No configurado'}\n`);
         
         // Verificar conexión a base de datos
         const conexionDB = await verificarConexionDB();
@@ -112,17 +142,23 @@ async function iniciarServidor() {
         // Iniciar servidor HTTP
         const server = app.listen(PORT, HOST, () => {
             console.log('\n🎉 Servidor TANCAT iniciado exitosamente!');
-            console.log(`📍 URL: http://${HOST}:${PORT}`);
+            console.log(`📍 Backend URL: http://${HOST}:${PORT}`);
             console.log(`🌍 Entorno: ${NODE_ENV}`);
             console.log(`📅 Fecha: ${new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Cordoba' })}`);
             
             // URLs útiles para desarrollo
             if (NODE_ENV === 'development') {
-                console.log('\n📋 URLs de desarrollo:');
-                console.log(`   Frontend: http://${HOST}:${PORT === 3000 ? '5500' : '3000'}`);
-                console.log(`   API Docs: http://${HOST}:${PORT}/api/docs`);
-                console.log(`   Health Check: http://${HOST}:${PORT}/api/health`);
-                console.log(`   Cliente API: http://${HOST}:${PORT}/api/cliente/sedes\n`);
+                console.log('\n📋 URLs importantes:');
+                console.log(`   🖥️  Frontend: http://localhost:5173`);
+                console.log(`   🔧 Backend API: http://${HOST}:${PORT}/api`);
+                console.log(`   📚 API Docs: http://${HOST}:${PORT}/api/docs`);
+                console.log(`   ❤️  Health Check: http://${HOST}:${PORT}/api/health`);
+                console.log(`   👥 Cliente API: http://${HOST}:${PORT}/api/cliente/sedes`);
+                console.log(`   🔐 Auth API: http://${HOST}:${PORT}/api/auth/login\n`);
+                
+                console.log('💡 Comandos útiles:');
+                console.log('   Frontend: cd frontend && npm run dev');
+                console.log('   Test API: curl http://localhost:3000/api/health\n');
             }
         });
         
@@ -130,7 +166,10 @@ async function iniciarServidor() {
         server.on('error', (error) => {
             if (error.code === 'EADDRINUSE') {
                 console.error(`❌ Puerto ${PORT} ya está en uso`);
-                console.log('💡 Intenta cambiar el puerto en el archivo .env o cierra el proceso que lo usa');
+                console.log('💡 Soluciones:');
+                console.log('   1. Cambiar el puerto en el archivo .env');
+                console.log('   2. Cerrar el proceso que usa el puerto');
+                console.log(`   3. Ejecutar: kill -9 $(lsof -ti:${PORT})`);
             } else {
                 console.error('❌ Error del servidor:', error.message);
             }
