@@ -11,7 +11,7 @@ const router = express.Router();
 const clienteController = require('../controllers/clientesController');
 
 // Middleware de base de datos
-const { injectDbClient } = require('../utils/database');
+const { injectDbClient } = require('../config/database');
 router.use(injectDbClient);
 
 // ====================================

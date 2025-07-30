@@ -1,409 +1,437 @@
 /**
- * TANCAT - Sistema de Administración
- * Archivo: authService.js
- * Descripción: Servicio de autenticación y gestión de sesiones
+ * TANCAT - Sistema de Administración Frontend
+ * Archivo: assets/js/authService.js
+ * Descripción: Servicio de autenticación para el frontend
  */
-
-import apiClient from './apiClient.js';
 
 class AuthService {
     constructor() {
-        this.user = null;
-        this.token = null;
-        this.refreshTimer = null;
+        this.apiBaseUrl = '/api';
+        this.tokenKey = 'tancat_token';
+        this.userKey = 'tancat_user';
+        this.refreshKey = 'tancat_refresh';
         
-        // Inicializar desde localStorage
-        this.initializeFromStorage();
+        // Estado interno
+        this.currentUser = null;
+        this.currentToken = null;
+        this.isRefreshing = false;
+        this.refreshPromise = null;
         
-        console.log('🔐 AuthService inicializado:', {
-            hasUser: !!this.user,
-            hasToken: !!this.token
-        });
+        this.init();
     }
-    
+
     // ====================================
     // INICIALIZACIÓN
     // ====================================
-    
-    initializeFromStorage() {
+    init() {
+        this.loadStoredAuth();
+        this.setupTokenRefresh();
+        
+        console.log('🔐 AuthService inicializado');
+    }
+
+    loadStoredAuth() {
         try {
-            const token = localStorage.getItem('tancat_auth_token');
-            const userData = localStorage.getItem('tancat_user_data');
+            const token = localStorage.getItem(this.tokenKey);
+            const userData = localStorage.getItem(this.userKey);
             
             if (token && userData) {
-                this.token = token;
-                this.user = JSON.parse(userData);
+                this.currentToken = token;
+                this.currentUser = JSON.parse(userData);
                 
-                // Configurar token en apiClient
-                apiClient.setAuthToken(token);
-                
-                // Iniciar timer de refresh
-                this.startTokenRefreshTimer();
-                
-                console.log('🔄 Sesión restaurada desde localStorage');
+                // Verificar si el token no ha expirado
+                if (this.isTokenValid(token)) {
+                    console.log('✅ Sesión restaurada desde localStorage');
+                } else {
+                    console.log('⚠️ Token expirado, limpiando sesión');
+                    this.clearAuth();
+                }
             }
         } catch (error) {
-            console.error('❌ Error al restaurar sesión:', error);
-            this.clearSession();
+            console.error('❌ Error cargando autenticación almacenada:', error);
+            this.clearAuth();
         }
     }
-    
+
+    setupTokenRefresh() {
+        // Verificar token cada 5 minutos
+        setInterval(() => {
+            if (this.currentToken && this.isTokenExpiringSoon(this.currentToken)) {
+                this.refreshToken();
+            }
+        }, 5 * 60 * 1000);
+    }
+
     // ====================================
-    // MÉTODOS DE AUTENTICACIÓN
+    // AUTENTICACIÓN
     // ====================================
-    
     async login(credentials) {
         try {
-            console.log('🔑 Intentando login para:', credentials.username);
+            console.log('🔐 Iniciando login...');
             
-            // Validar credenciales localmente
-            const validation = this.validateCredentials(credentials);
-            if (!validation.isValid) {
-                return {
-                    success: false,
-                    error: validation.errors.join(', '),
-                    validationErrors: validation.errors
-                };
-            }
-            
-            // Realizar login en el backend
-            const response = await apiClient.login({
-                email: credentials.username, // El backend espera email
-                password: credentials.password,
-                rememberMe: credentials.rememberMe || false
+            const response = await this.apiRequest('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify(credentials)
             });
-            
+
             if (response.success) {
-                // Guardar datos de sesión
-                this.setSession(response.data.user, response.data.token);
+                const { token, user } = response.data;
                 
-                console.log('✅ Login exitoso para:', response.data.user.email);
+                // Almacenar autenticación
+                this.storeAuth(token, user);
                 
-                return {
-                    success: true,
-                    user: this.user,
-                    redirectTo: this.getRedirectUrl()
-                };
+                console.log('✅ Login exitoso:', user.email);
+                
+                return { success: true, user };
             } else {
-                console.warn('❌ Login falló:', response.error);
-                return {
-                    success: false,
-                    error: response.error || 'Credenciales inválidas'
-                };
+                throw new Error(response.message || 'Error de autenticación');
             }
             
         } catch (error) {
             console.error('❌ Error en login:', error);
-            return {
-                success: false,
-                error: 'Error de conexión. Verifica tu red.',
-                isNetworkError: true
+            return { 
+                success: false, 
+                error: error.message || 'Error de conexión' 
             };
         }
     }
-    
+
     async logout() {
         try {
             console.log('🚪 Cerrando sesión...');
             
-            // Notificar al backend
-            await apiClient.logout();
-            
-            // Limpiar sesión local
-            this.clearSession();
-            
-            console.log('✅ Sesión cerrada exitosamente');
-            
-            return { success: true };
-            
-        } catch (error) {
-            console.error('❌ Error al cerrar sesión:', error);
-            
-            // Limpiar sesión local aunque falle el backend
-            this.clearSession();
-            
-            return { success: true }; // Siempre exitoso localmente
-        }
-    }
-    
-    async verifySession() {
-        if (!this.token) {
-            return false;
-        }
-        
-        try {
-            const isValid = await apiClient.verifyToken();
-            
-            if (!isValid) {
-                console.warn('🔓 Token inválido, cerrando sesión');
-                this.clearSession();
-                return false;
+            // Notificar al servidor
+            if (this.currentToken) {
+                await this.apiRequest('/auth/logout', {
+                    method: 'POST'
+                });
             }
             
-            return true;
-            
         } catch (error) {
-            console.error('❌ Error verificando sesión:', error);
-            this.clearSession();
-            return false;
+            console.warn('⚠️ Error al notificar logout al servidor:', error);
+        } finally {
+            // Limpiar siempre, incluso si falla la notificación
+            this.clearAuth();
+            
+            // Redirigir al login
+            if (window.router) {
+                window.router.navigate('/');
+            } else {
+                window.location.href = '/';
+            }
+            
+            console.log('✅ Sesión cerrada correctamente');
         }
     }
-    
-    // ====================================
-    // GESTIÓN DE SESIÓN
-    // ====================================
-    
-    setSession(user, token) {
-        this.user = user;
-        this.token = token;
-        
-        // Guardar en localStorage
-        localStorage.setItem('tancat_auth_token', token);
-        localStorage.setItem('tancat_user_data', JSON.stringify(user));
-        
-        // Configurar en apiClient
-        apiClient.setAuthToken(token);
-        
-        // Iniciar refresh timer
-        this.startTokenRefreshTimer();
-        
-        // Emitir evento de login
-        this.emitAuthEvent('login', { user });
-    }
-    
-    clearSession() {
-        const wasLoggedIn = !!this.user;
-        
-        // Limpiar variables
-        this.user = null;
-        this.token = null;
-        
-        // Limpiar localStorage
-        localStorage.removeItem('tancat_auth_token');
-        localStorage.removeItem('tancat_user_data');
-        
-        // Limpiar apiClient
-        apiClient.clearAuth();
-        
-        // Detener refresh timer
-        this.stopTokenRefreshTimer();
-        
-        // Emitir evento de logout si había sesión
-        if (wasLoggedIn) {
-            this.emitAuthEvent('logout');
-        }
-    }
-    
-    // ====================================
-    // GESTIÓN DE TOKEN REFRESH
-    // ====================================
-    
-    startTokenRefreshTimer() {
-        this.stopTokenRefreshTimer();
-        
-        // Refrescar token cada 50 minutos (tokens suelen durar 1 hora)
-        this.refreshTimer = setInterval(async () => {
-            await this.refreshToken();
-        }, 50 * 60 * 1000);
-    }
-    
-    stopTokenRefreshTimer() {
-        if (this.refreshTimer) {
-            clearInterval(this.refreshTimer);
-            this.refreshTimer = null;
-        }
-    }
-    
+
     async refreshToken() {
-        if (!this.token) return false;
+        if (this.isRefreshing) {
+            return this.refreshPromise;
+        }
         
+        this.isRefreshing = true;
+        
+        this.refreshPromise = this.performTokenRefresh();
+        
+        try {
+            const result = await this.refreshPromise;
+            return result;
+        } finally {
+            this.isRefreshing = false;
+            this.refreshPromise = null;
+        }
+    }
+
+    async performTokenRefresh() {
         try {
             console.log('🔄 Refrescando token...');
             
-            const response = await apiClient.post('/auth/refresh', {}, { cache: false });
-            
-            if (response.success && response.data?.token) {
-                // Actualizar solo el token, mantener user data
-                this.token = response.data.token;
-                localStorage.setItem('tancat_auth_token', response.data.token);
-                apiClient.setAuthToken(response.data.token);
+            const response = await this.apiRequest('/auth/refresh', {
+                method: 'POST'
+            });
+
+            if (response.success) {
+                const { token } = response.data;
+                
+                // Actualizar token almacenado
+                this.currentToken = token;
+                localStorage.setItem(this.tokenKey, token);
                 
                 console.log('✅ Token refrescado exitosamente');
-                return true;
+                return { success: true };
             } else {
-                console.warn('❌ No se pudo refrescar token');
-                this.clearSession();
-                return false;
+                throw new Error('No se pudo refrescar el token');
             }
             
         } catch (error) {
             console.error('❌ Error refrescando token:', error);
-            this.clearSession();
+            
+            // Si falla el refresh, cerrar sesión
+            this.clearAuth();
+            
+            if (window.router) {
+                window.router.navigate('/');
+            }
+            
+            return { success: false, error: error.message };
+        }
+    }
+
+    // ====================================
+    // VERIFICACIÓN DE ESTADO
+    // ====================================
+    async isAuthenticated() {
+        if (!this.currentToken || !this.currentUser) {
+            return false;
+        }
+        
+        // Verificar si el token sigue siendo válido
+        if (!this.isTokenValid(this.currentToken)) {
+            this.clearAuth();
+            return false;
+        }
+        
+        // Verificar con el servidor periódicamente
+        return await this.verifyTokenWithServer();
+    }
+
+    async verifyTokenWithServer() {
+        try {
+            const response = await this.apiRequest('/auth/verify', {
+                method: 'GET'
+            });
+            
+            if (response.success) {
+                // Actualizar datos del usuario si han cambiado
+                if (response.data.user) {
+                    this.currentUser = response.data.user;
+                    localStorage.setItem(this.userKey, JSON.stringify(this.currentUser));
+                }
+                return true;
+            } else {
+                this.clearAuth();
+                return false;
+            }
+            
+        } catch (error) {
+            console.warn('⚠️ Error verificando token con servidor:', error);
+            // En caso de error de red, asumir que sigue autenticado
+            return true;
+        }
+    }
+
+    isTokenValid(token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const currentTime = Math.floor(Date.now() / 1000);
+            
+            return payload.exp > currentTime;
+        } catch (error) {
+            console.error('❌ Error decodificando token:', error);
             return false;
         }
     }
-    
-    // ====================================
-    // VALIDACIONES
-    // ====================================
-    
-    validateCredentials(credentials) {
-        const errors = [];
-        
-        if (!credentials.username || credentials.username.trim().length < 2) {
-            errors.push('El usuario debe tener al menos 2 caracteres');
+
+    isTokenExpiringSoon(token, minutesThreshold = 10) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const currentTime = Math.floor(Date.now() / 1000);
+            const expirationTime = payload.exp;
+            const thresholdTime = minutesThreshold * 60;
+            
+            return (expirationTime - currentTime) < thresholdTime;
+        } catch (error) {
+            return true; // Asumir que expira pronto si no se puede decodificar
         }
-        
-        if (!credentials.password || credentials.password.length < 4) {
-            errors.push('La contraseña debe tener al menos 4 caracteres');
-        }
-        
-        // Validar formato de email si parece ser un email
-        if (credentials.username && credentials.username.includes('@')) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(credentials.username)) {
-                errors.push('El formato del email no es válido');
+    }
+
+    // ====================================
+    // GESTIÓN DE PERMISOS
+    // ====================================
+    async getPermissions() {
+        try {
+            const response = await this.apiRequest('/auth/permissions', {
+                method: 'GET'
+            });
+            
+            if (response.success) {
+                return response.data.permissions || {};
             }
+            
+            return {};
+        } catch (error) {
+            console.error('❌ Error obteniendo permisos:', error);
+            return {};
         }
-        
-        return {
-            isValid: errors.length === 0,
-            errors
-        };
     }
-    
-    // ====================================
-    // UTILIDADES Y GETTERS
-    // ====================================
-    
-    isAuthenticated() {
-        return !!(this.user && this.token);
-    }
-    
-    getUser() {
-        return this.user;
-    }
-    
-    getToken() {
-        return this.token;
-    }
-    
-    getUserRole() {
-        return this.user?.role || null;
-    }
-    
-    hasRole(role) {
-        return this.getUserRole() === role;
-    }
-    
+
     hasPermission(permission) {
-        // TODO: Implementar sistema de permisos granular
-        if (!this.user) return false;
+        if (!this.currentUser) return false;
         
-        // Por ahora, usar roles básicos
-        const userRole = this.getUserRole();
+        // Los administradores tienen todos los permisos
+        if (this.currentUser.role === 'Administrador') {
+            return true;
+        }
         
-        switch (permission) {
-            case 'admin':
-                return userRole === 'administrador';
-            case 'employee':
-                return ['administrador', 'empleado', 'encargado'].includes(userRole);
-            case 'manager':
-                return ['administrador', 'encargado'].includes(userRole);
-            default:
-                return false;
+        // TODO: Implementar lógica de permisos más específica
+        return true; // Por ahora, permitir todo a usuarios autenticados
+    }
+
+    getUserRole() {
+        return this.currentUser?.role || null;
+    }
+
+    // ====================================
+    // DATOS DEL USUARIO
+    // ====================================
+    getCurrentUser() {
+        return this.currentUser;
+    }
+
+    async getUserProfile() {
+        try {
+            const response = await this.apiRequest('/auth/profile', {
+                method: 'GET'
+            });
+            
+            if (response.success) {
+                return response.data;
+            }
+            
+            throw new Error(response.message || 'Error obteniendo perfil');
+        } catch (error) {
+            console.error('❌ Error obteniendo perfil:', error);
+            throw error;
         }
     }
-    
-    getRedirectUrl() {
-        // Determinar a dónde redirigir según el rol
-        const role = this.getUserRole();
+
+    // ====================================
+    // ALMACENAMIENTO
+    // ====================================
+    storeAuth(token, user) {
+        this.currentToken = token;
+        this.currentUser = user;
         
-        switch (role) {
-            case 'administrador':
-                return '/pages/dashboard.html';
-            case 'encargado':
-                return '/pages/dashboard.html';
-            case 'empleado':
-                return '/pages/reservas.html';
-            default:
-                return '/pages/dashboard.html';
+        localStorage.setItem(this.tokenKey, token);
+        localStorage.setItem(this.userKey, JSON.stringify(user));
+        
+        console.log('💾 Autenticación almacenada');
+    }
+
+    clearAuth() {
+        this.currentToken = null;
+        this.currentUser = null;
+        
+        localStorage.removeItem(this.tokenKey);
+        localStorage.removeItem(this.userKey);
+        localStorage.removeItem(this.refreshKey);
+        
+        console.log('🗑️ Autenticación limpiada');
+    }
+
+    // ====================================
+    // REQUESTS HTTP
+    // ====================================
+    async apiRequest(endpoint, options = {}) {
+        const url = `${this.apiBaseUrl}${endpoint}`;
+        
+        const defaultOptions = {
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        };
+        
+        // Agregar token de autorización si existe
+        if (this.currentToken) {
+            defaultOptions.headers['Authorization'] = `Bearer ${this.currentToken}`;
+        }
+        
+        const finalOptions = { ...defaultOptions, ...options };
+        
+        try {
+            const response = await fetch(url, finalOptions);
+            
+            // Manejar errores HTTP
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP ${response.status}`);
+            }
+            
+            return await response.json();
+            
+        } catch (error) {
+            console.error(`❌ Error en request ${endpoint}:`, error);
+            
+            // Si es error 401, probablemente el token expiró
+            if (error.message.includes('401')) {
+                this.clearAuth();
+                if (window.router) {
+                    window.router.navigate('/');
+                }
+            }
+            
+            throw error;
         }
     }
-    
+
+    // ====================================
+    // UTILIDADES
+    // ====================================
+    getAuthHeader() {
+        return this.currentToken ? `Bearer ${this.currentToken}` : null;
+    }
+
+    isLoggedIn() {
+        return !!(this.currentToken && this.currentUser);
+    }
+
+    getTokenExpirationTime() {
+        if (!this.currentToken) return null;
+        
+        try {
+            const payload = JSON.parse(atob(this.currentToken.split('.')[1]));
+            return new Date(payload.exp * 1000);
+        } catch (error) {
+            return null;
+        }
+    }
+
     // ====================================
     // EVENTOS
     // ====================================
-    
-    emitAuthEvent(type, data = {}) {
-        const event = new CustomEvent(`tancat-auth-${type}`, {
-            detail: { ...data, timestamp: new Date().toISOString() }
-        });
-        
-        window.dispatchEvent(event);
-    }
-    
-    // Método para suscribirse a eventos de auth
     onAuthChange(callback) {
-        const loginHandler = (event) => callback('login', event.detail);
-        const logoutHandler = (event) => callback('logout', event.detail);
-        
-        window.addEventListener('tancat-auth-login', loginHandler);
-        window.addEventListener('tancat-auth-logout', logoutHandler);
-        
-        // Retornar función para desuscribirse
-        return () => {
-            window.removeEventListener('tancat-auth-login', loginHandler);
-            window.removeEventListener('tancat-auth-logout', logoutHandler);
-        };
+        // TODO: Implementar sistema de eventos para cambios de autenticación
+        this._authChangeCallback = callback;
     }
-    
-    // ====================================
-    // MÉTODOS DE DESARROLLO/DEBUG
-    // ====================================
-    
-    getDebugInfo() {
-        return {
-            isAuthenticated: this.isAuthenticated(),
-            user: this.user,
-            hasToken: !!this.token,
-            tokenLength: this.token?.length || 0,
-            hasRefreshTimer: !!this.refreshTimer,
-            userRole: this.getUserRole()
-        };
-    }
-    
-    // Método para testing/desarrollo
-    simulateLogin(userData = null) {
-        if (import.meta.env?.VITE_ENVIRONMENT !== 'development') {
-            console.warn('⚠️ simulateLogin solo disponible en desarrollo');
-            return;
+
+    _notifyAuthChange(type, data) {
+        if (this._authChangeCallback) {
+            this._authChangeCallback(type, data);
         }
         
-        const defaultUser = {
-            id: 1,
-            email: 'admin@tancat.com',
-            name: 'Administrador',
-            role: 'administrador'
-        };
-        
-        const mockToken = 'mock_token_' + Date.now();
-        
-        this.setSession(userData || defaultUser, mockToken);
-        
-        console.log('🧪 Login simulado para desarrollo');
+        // Disparar evento personalizado
+        window.dispatchEvent(new CustomEvent('tancat:auth', {
+            detail: { type, data }
+        }));
     }
 }
 
 // ====================================
-// INSTANCIA GLOBAL
+// INICIALIZACIÓN GLOBAL
 // ====================================
-const authService = new AuthService();
+window.authService = new AuthService();
 
-// Hacer disponible globalmente para debugging
-if (typeof window !== 'undefined') {
-    window.authService = authService;
-    window.AUTH_DEBUG = () => authService.getDebugInfo();
+// Exponer para debugging en desarrollo
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    window.TANCAT_AUTH_DEBUG = {
+        getToken: () => window.authService.currentToken,
+        getUser: () => window.authService.currentUser,
+        clearAuth: () => window.authService.clearAuth(),
+        testLogin: async (email = 'admin@tancat.com', password = 'admin123') => {
+            return await window.authService.login({ email, password });
+        }
+    };
+    
+    console.log('🛠️ Debug de autenticación disponible en window.TANCAT_AUTH_DEBUG');
 }
-
-export default authService;

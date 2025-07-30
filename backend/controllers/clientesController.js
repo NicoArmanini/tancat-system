@@ -4,7 +4,7 @@
  * Descripción: Controlador para operaciones del cliente (consultas públicas)
  */
 
-const { handleDbError } = require('../utils/database');
+const { handleDbError } = require('../config/database');
 
 // ====================================
 // CONSULTAS PÚBLICAS
@@ -24,7 +24,8 @@ const obtenerSedes = async (req, res) => {
                 telefono,
                 horario_apertura,
                 horario_cierre,
-                dias_funcionamiento
+                dias_funcionamiento,
+                activo
             FROM sedes 
             WHERE activo = true
             ORDER BY nombre
@@ -76,7 +77,8 @@ const obtenerDeportes = async (req, res) => {
                 nombre,
                 descripcion,
                 duracion_turno,
-                precio_base
+                precio_base,
+                activo
             FROM deportes 
             WHERE activo = true
             ORDER BY nombre
@@ -500,25 +502,6 @@ const obtenerDetallesTorneo = async (req, res) => {
         
         const participantesResult = await req.db.query(participantesQuery, [torneo_id]);
         
-        // Obtener próximos partidos
-        const partidosQuery = `
-            SELECT 
-                p.id_partido,
-                p.fecha_partido,
-                p.hora_partido,
-                p.estado,
-                c.numero as cancha_numero
-            FROM partidos_torneo p
-            INNER JOIN canchas c ON p.id_cancha = c.id_cancha
-            WHERE p.id_torneo = $1 
-                AND p.estado IN ('programado', 'en_curso')
-                AND p.fecha_partido >= CURRENT_DATE
-            ORDER BY p.fecha_partido, p.hora_partido
-            LIMIT 10
-        `;
-        
-        const partidosResult = await req.db.query(partidosQuery, [torneo_id]);
-        
         const participantesInscritos = participantesResult.rows.length;
         const cuposDisponibles = torneo.max_participantes - participantesInscritos;
         
@@ -555,14 +538,7 @@ const obtenerDetallesTorneo = async (req, res) => {
                 nombre: torneo.sede_nombre,
                 direccion: torneo.sede_direccion,
                 telefono: torneo.sede_telefono
-            },
-            proximosPartidos: partidosResult.rows.map(partido => ({
-                id: partido.id_partido,
-                fecha: partido.fecha_partido,
-                hora: partido.hora_partido ? partido.hora_partido.substring(0, 5) : null,
-                cancha: partido.cancha_numero,
-                estado: partido.estado
-            }))
+            }
         };
         
         res.json({

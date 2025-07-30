@@ -3,7 +3,7 @@
 // ====================================
 const express = require('express');
 const torneosRouter = express.Router();
-const { injectDbClient } = require('../utils/database');
+const { injectDbClient } = require('../config/database');
 
 torneosRouter.use(injectDbClient);
 
