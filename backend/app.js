@@ -1,7 +1,7 @@
 /**
  * TANCAT - Sistema de Administración
  * Archivo: app.js
- * Descripción: Configuración principal de la aplicación Express
+ * Descripción: Configuración principal de la aplicación Express con Neon Database
  */
 
 require('dotenv').config();
@@ -12,9 +12,6 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
-
-// Importar configuración de base de datos
-const { injectDb, isHealthy } = require('./config/database');
 
 // ====================================
 // INICIALIZACIÓN DE EXPRESS
@@ -31,7 +28,7 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
             imgSrc: ["'self'", "data:", "https:"],
             connectSrc: ["'self'"],
             fontSrc: ["'self'"],
@@ -47,21 +44,16 @@ app.use(helmet({
 const corsOptions = {
     origin: function (origin, callback) {
         const allowedOrigins = process.env.CORS_ORIGIN 
-            ? process.env.CORS_ORIGIN.split(',')
-            : [
-                'http://localhost:3000', 
-                'http://localhost:5173', 
-                'http://127.0.0.1:5173',
-                'http://localhost:5500', 
-                'http://127.0.0.1:5500'
-            ];
+            ? process.env.CORS_ORIGIN.split(',').map(url => url.trim())
+            : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173'];
         
         // Permitir requests sin origin (ej: aplicaciones móviles, Postman)
         if (!origin) return callback(null, true);
         
-        if (allowedOrigins.indexOf(origin) !== -1) {
+        if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
+            console.warn(`🚫 CORS bloqueó origen: ${origin}`);
             callback(new Error('No permitido por CORS'));
         }
     },
@@ -73,8 +65,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Rate Limiting para APIs
-const apiLimiter = rateLimit({
+// Rate Limiting
+const limiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
     message: {
@@ -84,7 +76,7 @@ const apiLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => {
-        // Saltar rate limiting en desarrollo para ciertas rutas
+        // Saltar rate limiting en desarrollo para docs y health check
         if (process.env.NODE_ENV === 'development' && 
             (req.path.startsWith('/api/docs') || req.path === '/api/health')) {
             return true;
@@ -93,8 +85,7 @@ const apiLimiter = rateLimit({
     }
 });
 
-// Aplicar rate limiting solo a rutas API
-app.use('/api/', apiLimiter);
+app.use('/api/', limiter);
 
 // ====================================
 // MIDDLEWARES DE APLICACIÓN
@@ -121,53 +112,77 @@ app.use(express.urlencoded({
     limit: '10mb' 
 }));
 
-// Inyectar conexión de base de datos en todas las rutas
-app.use(injectDb);
+// Servir archivos estáticos
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Trust proxy para aplicaciones detrás de proxy reverso
 app.set('trust proxy', 1);
 
 // ====================================
-// SERVIR ARCHIVOS ESTÁTICOS (SPA)
+// MIDDLEWARE DE CONEXIÓN A BASE DE DATOS
 // ====================================
 
-// Servir archivos estáticos del frontend con MIME types correctos
-app.use(express.static(path.join(__dirname, '../frontend'), {
-    index: false, // No servir index.html automáticamente
-    maxAge: process.env.NODE_ENV === 'production' ? '1d' : '0',
-    setHeaders: (res, path) => {
-        // Configurar MIME types correctos
-        if (path.endsWith('.js')) {
-            res.setHeader('Content-Type', 'application/javascript');
-        } else if (path.endsWith('.css')) {
-            res.setHeader('Content-Type', 'text/css');
-        } else if (path.endsWith('.html')) {
-            res.setHeader('Content-Type', 'text/html');
-        } else if (path.endsWith('.json')) {
-            res.setHeader('Content-Type', 'application/json');
+// Solo verificar conexión en desarrollo para evitar sobrecarga
+if (process.env.NODE_ENV === 'development') {
+    app.use('/api', async (req, res, next) => {
+        // Solo verificar en rutas críticas para no sobrecargar
+        if (req.method === 'GET' && req.path === '/health') {
+            try {
+                const { testNeonConnection } = require('./config/database');
+                const isConnected = await testNeonConnection();
+                if (!isConnected) {
+                    console.warn('⚠️ Conexión a Neon inestable');
+                }
+            } catch (error) {
+                console.error('❌ Error verificando conexión Neon:', error.message);
+            }
         }
-    }
-}));
-
-// Servir uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+        next();
+    });
+}
 
 // ====================================
 // RUTAS DE LA API
 // ====================================
 
-// Health Check
+// Health Check mejorado
 app.get('/api/health', async (req, res) => {
-    const dbHealth = await isHealthy();
-    
-    res.json({
-        status: dbHealth.healthy ? 'OK' : 'ERROR',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-        version: '1.0.0',
-        database: dbHealth.healthy ? 'Connected' : 'Disconnected',
-        dbDetails: dbHealth
-    });
+    try {
+        const { isHealthy, getPoolStats } = require('./utils/database');
+        
+        const dbHealthy = await isHealthy();
+        const poolStats = getPoolStats();
+        
+        const healthStatus = {
+            status: dbHealthy ? 'OK' : 'ERROR',
+            timestamp: new Date().toISOString(),
+            environment: process.env.NODE_ENV || 'development',
+            version: '1.0.0',
+            database: {
+                connected: dbHealthy,
+                provider: 'Neon PostgreSQL',
+                pool: poolStats
+            },
+            system: {
+                uptime: process.uptime(),
+                memory: process.memoryUsage(),
+                platform: process.platform,
+                nodeVersion: process.version
+            }
+        };
+        
+        const statusCode = dbHealthy ? 200 : 503;
+        res.status(statusCode).json(healthStatus);
+        
+    } catch (error) {
+        console.error('❌ Error en health check:', error);
+        res.status(503).json({
+            status: 'ERROR',
+            timestamp: new Date().toISOString(),
+            error: 'Health check failed',
+            message: error.message
+        });
+    }
 });
 
 // Información del API
@@ -176,86 +191,66 @@ app.get('/api', (req, res) => {
         name: 'TANCAT API',
         version: '1.0.0',
         description: 'Sistema de administración para Complejo Deportivo TANCAT',
+        database: 'Neon PostgreSQL',
         endpoints: {
-            auth: '/api/auth',
-            cliente: '/api/cliente',
+            client: '/api/cliente',
             admin: '/api/admin',
-            reservas: '/api/reservas',
-            torneos: '/api/torneos',
-            inventario: '/api/inventario',
-            ventas: '/api/ventas',
-            reportes: '/api/reportes',
-            health: '/api/health',
-            docs: '/api/docs'
+            auth: '/api/auth',
+            docs: '/api/docs',
+            health: '/api/health'
         },
         timestamp: new Date().toISOString()
     });
 });
 
-// Importar y usar rutas
+// ====================================
+// IMPORTAR Y CONFIGURAR RUTAS
+// ====================================
+
 try {
-    // Rutas de autenticación (DEBE IR PRIMERA)
-    const authRoutes = require('./routes/auth');
-    app.use('/api/auth', authRoutes);
-    console.log('✅ Rutas de autenticación cargadas');
-    
     // Rutas del cliente (públicas)
     const clienteRoutes = require('./routes/clientes');
     app.use('/api/cliente', clienteRoutes);
-    console.log('✅ Rutas de cliente cargadas');
+    
+    // Rutas de autenticación
+    const authRoutes = require('./routes/auth');
+    app.use('/api/auth', authRoutes);
     
     // Rutas de administración (protegidas)
     const adminRoutes = require('./routes/admin');
     app.use('/api/admin', adminRoutes);
-    console.log('✅ Rutas de administración cargadas');
     
-    // Rutas específicas de módulos
-    try {
-        const reservasRoutes = require('./routes/reservas');
-        app.use('/api/reservas', reservasRoutes);
-        console.log('✅ Rutas de reservas cargadas');
-    } catch (err) {
-        console.warn('⚠️ Rutas de reservas no disponibles:', err.message);
-    }
+    // Rutas de reservas
+    const reservasRoutes = require('./routes/reservas');
+    app.use('/api/reservas', reservasRoutes);
     
-    try {
-        const torneosRoutes = require('./routes/torneos');
-        app.use('/api/torneos', torneosRoutes);
-        console.log('✅ Rutas de torneos cargadas');
-    } catch (err) {
-        console.warn('⚠️ Rutas de torneos no disponibles:', err.message);
-    }
-    
-    try {
-        const inventarioRoutes = require('./routes/inventario');
-        app.use('/api/inventario', inventarioRoutes);
-        console.log('✅ Rutas de inventario cargadas');
-    } catch (err) {
-        console.warn('⚠️ Rutas de inventario no disponibles:', err.message);
-    }
-    
-    try {
-        const ventasRoutes = require('./routes/ventas');
-        app.use('/api/ventas', ventasRoutes);
-        console.log('✅ Rutas de ventas cargadas');
-    } catch (err) {
-        console.warn('⚠️ Rutas de ventas no disponibles:', err.message);
-    }
-    
-    try {
-        const reportesRoutes = require('./routes/reportes');
-        app.use('/api/reportes', reportesRoutes);
-        console.log('✅ Rutas de reportes cargadas');
-    } catch (err) {
-        console.warn('⚠️ Rutas de reportes no disponibles:', err.message);
-    }
+    console.log('✅ Rutas principales cargadas exitosamente');
     
 } catch (error) {
-    console.error('❌ Error crítico cargando rutas principales:', error.message);
+    console.warn('⚠️ Error al cargar algunas rutas:', error.message);
+    console.log('💡 Algunas rutas pueden no estar disponibles hasta que se creen los archivos correspondientes');
 }
 
+// Intentar cargar rutas adicionales (pueden no existir aún)
+const rutasOpcionales = [
+    { path: '/api/torneos', file: './routes/torneos' },
+    { path: '/api/inventario', file: './routes/inventario' },
+    { path: '/api/reportes', file: './routes/reportes' },
+    { path: '/api/ventas', file: './routes/ventas' }
+];
+
+rutasOpcionales.forEach(({ path, file }) => {
+    try {
+        const routes = require(file);
+        app.use(path, routes);
+        console.log(`✅ Ruta ${path} cargada`);
+    } catch (error) {
+        console.log(`⏳ Ruta ${path} no disponible (será implementada posteriormente)`);
+    }
+});
+
 // ====================================
-// DOCUMENTACIÓN API (SWAGGER) - SOLO DESARROLLO
+// DOCUMENTACIÓN API (SWAGGER)
 // ====================================
 if (process.env.NODE_ENV === 'development') {
     try {
@@ -268,7 +263,7 @@ if (process.env.NODE_ENV === 'development') {
                 info: {
                     title: 'TANCAT API',
                     version: '1.0.0',
-                    description: 'Sistema de administración para Complejo Deportivo TANCAT',
+                    description: 'Sistema de administración para Complejo Deportivo TANCAT con Neon Database',
                     contact: {
                         name: 'TANCAT Development Team',
                         email: 'dev@tancat.com'
@@ -303,45 +298,39 @@ if (process.env.NODE_ENV === 'development') {
         console.log('✅ Documentación Swagger disponible en /api/docs');
         
     } catch (error) {
-        console.warn('⚠️ Swagger no disponible:', error.message);
+        console.warn('⚠️ Swagger no disponible (instalar swagger-jsdoc y swagger-ui-express):', error.message);
     }
 }
 
 // ====================================
-// SPA ROUTING - MANEJO DE RUTAS FRONTEND
+// MIDDLEWARE DE MANEJO DE ERRORES
 // ====================================
 
-// Manejar todas las rutas no-API como SPA
-app.get('*', (req, res, next) => {
-    // Si es una ruta de API que no existe, devolver 404 JSON
-    if (req.path.startsWith('/api/')) {
-        return res.status(404).json({
-            success: false,
-            message: `Endpoint ${req.path} no encontrado`,
-            error: 'ENDPOINT_NOT_FOUND',
-            timestamp: new Date().toISOString()
-        });
-    }
-    
-    // Para todas las demás rutas, servir index.html (SPA)
-    res.sendFile(path.join(__dirname, '../frontend/index.html'), (err) => {
-        if (err) {
-            console.error('❌ Error sirviendo index.html:', err);
-            res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: 'STATIC_FILE_ERROR',
-                timestamp: new Date().toISOString()
-            });
-        }
+// Middleware para rutas no encontradas
+app.use('*', (req, res) => {
+    res.status(404).json({
+        success: false,
+        message: `Ruta ${req.originalUrl} no encontrada`,
+        error: 'NOT_FOUND',
+        suggestions: [
+            'Verifica la URL',
+            'Consulta la documentación en /api/docs',
+            'Verifica el método HTTP utilizado'
+        ],
+        timestamp: new Date().toISOString()
     });
 });
 
-// ====================================
-// MIDDLEWARE DE MANEJO DE ERRORES GLOBAL
-// ====================================
+// Middleware de manejo de errores global
 app.use((error, req, res, next) => {
-    console.error('❌ Error no manejado:', error);
+    console.error('❌ Error no manejado:', {
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        url: req.originalUrl,
+        method: req.method,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+    });
     
     // Error de validación
     if (error.name === 'ValidationError') {
@@ -349,6 +338,7 @@ app.use((error, req, res, next) => {
             success: false,
             message: 'Error de validación',
             error: error.message,
+            details: error.details || null,
             timestamp: new Date().toISOString()
         });
     }
@@ -376,47 +366,29 @@ app.use((error, req, res, next) => {
     
     // Error de base de datos PostgreSQL
     if (error.code && error.code.startsWith('23')) {
-        let message = 'Error de base de datos';
-        
-        switch (error.code) {
-            case '23505':
-                message = 'El registro ya existe (valor duplicado)';
-                break;
-            case '23503':
-                message = 'Referencia inválida en los datos';
-                break;
-            case '23502':
-                message = 'Campo requerido faltante';
-                break;
-            case '23514':
-                message = 'Violación de restricción de datos';
-                break;
+        try {
+            const { handleDbError } = require('./utils/database');
+            const dbError = handleDbError(error);
+            
+            return res.status(400).json({
+                success: false,
+                message: dbError.friendlyMessage,
+                error: 'DATABASE_ERROR',
+                code: error.code,
+                details: process.env.NODE_ENV === 'development' ? dbError : null,
+                timestamp: new Date().toISOString()
+            });
+        } catch (handlerError) {
+            console.error('Error en handleDbError:', handlerError);
         }
-        
-        return res.status(400).json({
-            success: false,
-            message: message,
-            error: 'DATABASE_ERROR',
-            code: error.code,
-            timestamp: new Date().toISOString()
-        });
     }
     
-    // Error de JWT
-    if (error.name === 'JsonWebTokenError') {
-        return res.status(401).json({
+    // Error de conexión a base de datos
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+        return res.status(503).json({
             success: false,
-            message: 'Token de autenticación inválido',
-            error: 'INVALID_TOKEN',
-            timestamp: new Date().toISOString()
-        });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-        return res.status(401).json({
-            success: false,
-            message: 'Token de autenticación expirado',
-            error: 'EXPIRED_TOKEN',
+            message: 'Servicio de base de datos no disponible',
+            error: 'DATABASE_CONNECTION_ERROR',
             timestamp: new Date().toISOString()
         });
     }
@@ -434,6 +406,29 @@ app.use((error, req, res, next) => {
         } : 'INTERNAL_SERVER_ERROR',
         timestamp: new Date().toISOString()
     });
+});
+
+// ====================================
+// MANEJO GRACEFUL DE SHUTDOWN
+// ====================================
+process.on('SIGTERM', async () => {
+    console.log('🔄 SIGTERM recibido, cerrando servidor gracefully...');
+    try {
+        const { closeConnections } = require('./config/database');
+        await closeConnections();
+    } catch (error) {
+        console.error('Error cerrando conexiones:', error);
+    }
+});
+
+process.on('SIGINT', async () => {
+    console.log('🔄 SIGINT recibido, cerrando servidor gracefully...');
+    try {
+        const { closeConnections } = require('./config/database');
+        await closeConnections();
+    } catch (error) {
+        console.error('Error cerrando conexiones:', error);
+    }
 });
 
 // ====================================

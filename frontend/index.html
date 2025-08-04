@@ -5,40 +5,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TANCAT - Sistema de Administración</title>
     
-    <!-- Meta tags para SEO y PWA -->
+    <!-- Meta tags para SEO -->
     <meta name="description" content="Sistema de administración para Complejo Deportivo TANCAT">
-    <meta name="keywords" content="tancat, pádel, reservas, complejo deportivo, córdoba">
+    <meta name="keywords" content="TANCAT, pádel, reservas, complejo deportivo, Córdoba">
     <meta name="author" content="TANCAT Development Team">
     
-    <!-- Favicons -->
-    <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
-    <link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png">
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     
-    <!-- CSS Principal -->
-    <link href="/assets/css/styles.css" rel="stylesheet">
-    <link href="/assets/css/dashboard.css" rel="stylesheet">
-    <link href="/assets/css/mainAdmin.css" rel="stylesheet">
+    <!-- CSS Principales -->
+    <link href="assets/css/styles.css" rel="stylesheet">
+    <link href="assets/css/cliente-main.css" rel="stylesheet">
+    <link href="assets/css/dashboard.css" rel="stylesheet">
+    <link href="assets/css/mainAdmin.css" rel="stylesheet">
     
-    <!-- CSS del Router y Estados -->
-    <style>
-        /* Loading states */
-        .page-loading {
-            pointer-events: none;
-        }
+    <!-- Configuración de la aplicación -->
+    <script>
+        window.APP_CONFIG = {
+            API_BASE_URL: 'http://localhost:3000/api',
+            ENVIRONMENT: 'development',
+            VERSION: '1.0.0',
+            SEDES: {
+                JACINTO_RIOS: {
+                    id: 1,
+                    nombre: 'Jacinto Ríos',
+                    direccion: 'Jacinto Ríos 232, Córdoba'
+                },
+                RINCON: {
+                    id: 2,
+                    nombre: 'Rincón',
+                    direccion: 'Rincón 985, Córdoba'
+                }
+            },
+            DEPORTES: {
+                PADEL: { id: 1, nombre: 'Pádel' },
+                BASQUET: { id: 2, nombre: 'Básquet' },
+                PING_PONG: { id: 3, nombre: 'Ping Pong' },
+                SQUASH: { id: 4, nombre: 'Squash' },
+                VOLEY: { id: 5, nombre: 'Vóley' }
+            }
+        };
+    </script>
+</head>
+<body>
+    <!-- Contenedor principal de la SPA -->
+    <div id="app">
+        <!-- Indicador de carga inicial -->
+        <div id="loading-screen" class="loading-screen">
+            <div class="loading-content">
+                <div class="logo-loading">TANCAT</div>
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Cargando sistema...</div>
+            </div>
+        </div>
         
-        .loading-overlay {
+        <!-- Contenido principal se carga aquí dinámicamente -->
+        <div id="main-content" style="display: none;">
+            <!-- Las vistas se cargan aquí mediante JavaScript -->
+        </div>
+    </div>
+    
+    <!-- Scripts de la aplicación -->
+    <script type="module" src="assets/js/config.js"></script>
+    <script type="module" src="assets/js/utils.js"></script>
+    <script type="module" src="assets/js/apiClient.js"></script>
+    <script type="module" src="assets/js/auth.js"></script>
+    <script type="module" src="assets/js/router.js"></script>
+    <script type="module" src="assets/js/app.js"></script>
+    
+    <!-- Estilos para la pantalla de carga -->
+    <style>
+        .loading-screen {
             position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(44, 62, 80, 0.9);
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #95a5a6 100%);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 10000;
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            text-align: center;
             color: white;
+        }
+        
+        .logo-loading {
+            font-size: 48px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 30px;
+            letter-spacing: 3px;
+            animation: pulse 2s infinite;
         }
         
         .loading-spinner {
@@ -48,12 +109,12 @@
             border-top: 4px solid #e74c3c;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 1rem;
+            margin: 0 auto 20px;
         }
         
         .loading-text {
-            font-size: 1.1rem;
-            font-weight: 500;
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
         }
         
         @keyframes spin {
@@ -61,388 +122,91 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* Error states */
-        .error-container,
-        .access-denied-container {
-            min-height: 100vh;
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* Error de carga */
+        .error-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #2c3e50;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             color: white;
             text-align: center;
-            padding: 2rem;
+            z-index: 9999;
         }
         
-        .error-content,
-        .access-denied-content {
-            max-width: 500px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 3rem;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .error-content h1,
-        .access-denied-content h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
+        .error-content h2 {
             color: #e74c3c;
+            margin-bottom: 20px;
         }
         
-        .error-content p,
-        .access-denied-content p {
-            margin-bottom: 2rem;
-            opacity: 0.9;
+        .error-content p {
+            margin-bottom: 20px;
+            opacity: 0.8;
         }
         
-        .error-details {
-            background: rgba(231, 76, 60, 0.2);
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-            font-family: monospace;
-            font-size: 0.9rem;
-            text-align: left;
-            word-break: break-word;
-        }
-        
-        .error-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .btn-primary {
+        .btn-retry {
             background: #e74c3c;
             color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
         }
         
-        .btn-primary:hover {
+        .btn-retry:hover {
             background: #c0392b;
-            transform: translateY(-2px);
-        }
-        
-        .btn-secondary {
-            background: transparent;
-            color: white;
-            border: 2px solid white;
-        }
-        
-        .btn-secondary:hover {
-            background: white;
-            color: #2c3e50;
-        }
-        
-        /* Fade animations */
-        .fade-in {
-            animation: fadeIn 0.5s ease-out;
-        }
-        
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Navigation active states */
-        .nav-item.active {
-            background: rgba(231, 76, 60, 0.2);
-            color: #e74c3c;
-        }
-        
-        /* Responsive utilities */
-        @media (max-width: 768px) {
-            .error-content,
-            .access-denied-content {
-                padding: 2rem;
-                margin: 1rem;
-            }
-            
-            .error-actions {
-                flex-direction: column;
-            }
-            
-            .btn {
-                width: 100%;
-            }
         }
     </style>
-</head>
-<body>
-    <!-- Contenedor principal de la aplicación SPA -->
-    <div id="app-container">
-        <!-- Aquí se cargará dinámicamente el contenido de cada página -->
-        <div class="initial-loading">
-            <div class="loading-overlay">
-                <div class="loading-spinner"></div>
-                <div class="loading-text">Cargando TANCAT...</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts de configuración y utilidades -->
+    
+    <!-- Manejo de errores de JavaScript -->
     <script>
-        // Configuración global de la aplicación
-        window.TANCAT_CONFIG = {
-            API_BASE_URL: '/api',
-            VERSION: '1.0.0',
-            ENVIRONMENT: 'development',
-            DEBUG: true,
-            FEATURES: {
-                AUTH_REQUIRED: true,
-                ENABLE_LOGGING: true,
-                ENABLE_ANALYTICS: false
-            }
-        };
-
-        // Utilidades globales
-        window.TANCAT_UTILS = {
-            formatDate: (date) => {
-                return new Date(date).toLocaleDateString('es-AR');
-            },
-            
-            formatCurrency: (amount) => {
-                return new Intl.NumberFormat('es-AR', {
-                    style: 'currency',
-                    currency: 'ARS'
-                }).format(amount);
-            },
-            
-            formatTime: (time) => {
-                return time.substring(0, 5); // HH:MM
-            },
-            
-            showNotification: (message, type = 'info') => {
-                console.log(`[${type.toUpperCase()}] ${message}`);
-                // TODO: Implementar sistema de notificaciones UI
-            },
-            
-            debounce: (func, wait) => {
-                let timeout;
-                return function executedFunction(...args) {
-                    const later = () => {
-                        clearTimeout(timeout);
-                        func(...args);
-                    };
-                    clearTimeout(timeout);
-                    timeout = setTimeout(later, wait);
-                };
-            }
-        };
-
-        // Manejo de errores globales
-        window.addEventListener('error', (e) => {
-            console.error('❌ Error global:', e.error);
-            
-            if (window.TANCAT_CONFIG.DEBUG) {
-                console.group('🐛 Debug Info');
-                console.log('Archivo:', e.filename);
-                console.log('Línea:', e.lineno);
-                console.log('Columna:', e.colno);
-                console.log('Stack:', e.error?.stack);
-                console.groupEnd();
-            }
+        // Manejo global de errores
+        window.addEventListener('error', function(e) {
+            console.error('Error global capturado:', e.error);
         });
-
-        window.addEventListener('unhandledrejection', (e) => {
-            console.error('❌ Promise rechazada:', e.reason);
-            
-            if (window.TANCAT_CONFIG.DEBUG) {
-                console.group('🐛 Promise Debug Info');
-                console.log('Reason:', e.reason);
-                console.log('Promise:', e.promise);
-                console.groupEnd();
-            }
+        
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Promise rechazada no manejada:', e.reason);
         });
-    </script>
-
-    <!-- Scripts principales del sistema -->
-    <script src="/assets/js/authService.js"></script>
-    <script src="/assets/js/router.js"></script>
-
-    <!-- Script de inicialización -->
-    <script>
-        // Inicialización de la aplicación
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 Inicializando TANCAT System...');
-            
-            try {
-                // Ocultar loading inicial después de un breve delay
-                setTimeout(() => {
-                    const initialLoading = document.querySelector('.initial-loading');
-                    if (initialLoading) {
-                        initialLoading.style.opacity = '0';
-                        setTimeout(() => {
-                            initialLoading.remove();
-                        }, 300);
-                    }
-                }, 1000);
-
-                // Verificar estado de autenticación inicial
-                const isAuth = await window.authService.isAuthenticated();
-                console.log('🔐 Estado de autenticación:', isAuth ? 'Autenticado' : 'No autenticado');
-
-                // El router manejará la navegación inicial
-                console.log('🧭 Router iniciado, manejando ruta inicial...');
-
-                // Setup de eventos globales
-                setupGlobalEvents();
-
-                console.log('✅ TANCAT System inicializado correctamente');
-
-            } catch (error) {
-                console.error('❌ Error crítico en inicialización:', error);
-                
-                // Mostrar error de inicialización
-                document.getElementById('app-container').innerHTML = `
-                    <div class="error-container">
-                        <div class="error-content">
-                            <h1>❌ Error de Inicialización</h1>
-                            <p>No se pudo cargar el sistema TANCAT correctamente.</p>
-                            <div class="error-details">${error.message}</div>
-                            <div class="error-actions">
-                                <button onclick="window.location.reload()" class="btn btn-primary">
-                                    🔄 Recargar Aplicación
-                                </button>
-                            </div>
-                        </div>
+        
+        // Función para mostrar error de carga
+        window.showLoadingError = function(message) {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.innerHTML = `
+                    <div class="error-content">
+                        <h2>⚠️ Error de Carga</h2>
+                        <p>${message || 'No se pudo cargar la aplicación correctamente.'}</p>
+                        <p>Verifica tu conexión a internet y que el servidor esté ejecutándose.</p>
+                        <button class="btn-retry" onclick="window.location.reload()">
+                            🔄 Reintentar
+                        </button>
                     </div>
                 `;
-            }
-        });
-
-        function setupGlobalEvents() {
-            // Evento de cambio de autenticación
-            window.addEventListener('tancat:auth', (e) => {
-                const { type, data } = e.detail;
-                console.log(`🔐 Evento de auth: ${type}`, data);
-                
-                // Actualizar UI según el estado de autenticación
-                updateAuthUI(type, data);
-            });
-
-            // Manejo de conexión de red
-            window.addEventListener('online', () => {
-                console.log('🌐 Conexión restaurada');
-                window.TANCAT_UTILS.showNotification('Conexión a internet restaurada', 'success');
-            });
-
-            window.addEventListener('offline', () => {
-                console.log('📡 Sin conexión');
-                window.TANCAT_UTILS.showNotification('Sin conexión a internet', 'warning');
-            });
-
-            // Detectar cambios de visibilidad (tab activo/inactivo)
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    console.log('📱 Tab inactivo');
-                } else {
-                    console.log('📱 Tab activo');
-                    // Verificar sesión cuando vuelve a estar activo
-                    if (window.authService.isLoggedIn()) {
-                        window.authService.verifyTokenWithServer();
-                    }
-                }
-            });
-        }
-
-        function updateAuthUI(type, data) {
-            // Actualizar elementos de UI según el estado de autenticación
-            const userNameElements = document.querySelectorAll('[id="userName"], .user-name');
-            const userRoleElements = document.querySelectorAll('[id="userRole"], .user-role');
-
-            if (type === 'login' && data.user) {
-                userNameElements.forEach(el => {
-                    el.textContent = `${data.user.nombre} ${data.user.apellido}`;
-                });
-                userRoleElements.forEach(el => {
-                    el.textContent = data.user.role;
-                });
-            } else if (type === 'logout') {
-                userNameElements.forEach(el => {
-                    el.textContent = 'Usuario';
-                });
-                userRoleElements.forEach(el => {
-                    el.textContent = 'Invitado';
-                });
-            }
-        }
-
-        // Exponer funciones útiles globalmente
-        window.TANCAT_APP = {
-            navigate: (path) => window.router.navigate(path),
-            getCurrentUser: () => window.authService.getCurrentUser(),
-            logout: () => window.authService.logout(),
-            isAuthenticated: () => window.authService.isAuthenticated(),
-            reload: () => window.location.reload(),
-            showError: (message) => {
-                console.error('Error mostrado al usuario:', message);
-                window.TANCAT_UTILS.showNotification(message, 'error');
-            },
-            showSuccess: (message) => {
-                console.log('Éxito mostrado al usuario:', message);
-                window.TANCAT_UTILS.showNotification(message, 'success');
+                loadingScreen.className = 'error-screen';
             }
         };
-
-        // Debug helpers para desarrollo
-        if (window.TANCAT_CONFIG.DEBUG) {
-            window.TANCAT_DEBUG = {
-                router: () => window.router,
-                auth: () => window.authService,
-                config: () => window.TANCAT_CONFIG,
-                user: () => window.authService.getCurrentUser(),
-                token: () => window.authService.currentToken,
-                navigateTest: (path) => {
-                    console.log(`🧪 Test de navegación a: ${path}`);
-                    window.router.navigate(path);
-                },
-                authTest: {
-                    login: (email = 'admin@tancat.com', password = 'admin123') => {
-                        return window.authService.login({ email, password });
-                    },
-                    logout: () => window.authService.logout(),
-                    verify: () => window.authService.verifyTokenWithServer()
-                }
-            };
+        
+        // Timeout de carga (10 segundos)
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-screen');
+            const mainContent = document.getElementById('main-content');
             
-            console.log('🛠️ TANCAT Debug disponible en window.TANCAT_DEBUG');
-        }
-    </script>
-
-    <!-- Scripts de páginas específicas (se cargan dinámicamente por el router) -->
-    
-    <!-- Service Worker para PWA (opcional) -->
-    <script>
-        if ('serviceWorker' in navigator && window.TANCAT_CONFIG.ENVIRONMENT === 'production') {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('✅ SW registrado:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('❌ SW falló:', error);
-                    });
-            });
-        }
+            if (loadingScreen && loadingScreen.style.display !== 'none' && 
+                mainContent && mainContent.style.display === 'none') {
+                window.showLoadingError('La aplicación está tardando demasiado en cargar.');
+            }
+        }, 10000);
     </script>
 </body>
 </html>

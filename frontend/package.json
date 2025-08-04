@@ -1,23 +1,36 @@
 {
   "name": "tancat-frontend",
   "version": "1.0.0",
-  "description": "Frontend Sistema TANCAT - Complejo Deportivo",
-  "main": "server.js",
+  "description": "Frontend para Sistema TANCAT - Complejo Deportivo",
+  "type": "module",
   "scripts": {
-    "dev": "nodemon server.js",
-    "start": "node server.js",
-    "serve": "node server.js"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "serve": "vite preview",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "nodemon": "^3.0.2"
+    "vite": "^5.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5"
   },
   "keywords": [
     "tancat",
     "frontend",
     "spa",
-    "vanilla-js",
+    "vite",
+    "javascript",
     "complejo-deportivo"
   ],
   "author": "TANCAT Development Team",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
 }

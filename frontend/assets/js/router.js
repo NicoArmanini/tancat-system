@@ -1,566 +1,619 @@
 /**
- * TANCAT - Sistema de Administración Frontend
- * Archivo: assets/js/router.js
- * Descripción: Router SPA para navegación sin /api en URLs
+ * TANCAT - Router SPA
+ * Archivo: router.js
+ * Descripción: Sistema de routing para Single Page Application
  */
 
-// ====================================
-// CONFIGURACIÓN DEL ROUTER
-// ====================================
 class TancatRouter {
     constructor() {
         this.routes = new Map();
         this.middlewares = [];
         this.currentRoute = null;
         this.isNavigating = false;
+        this.history = [];
         
-        // Configuración
-        this.config = {
-            baseUrl: window.location.origin,
-            apiUrl: '/api',
-            defaultRoute: '/',
-            errorRoute: '/error',
-            loadingClass: 'page-loading'
-        };
-        
-        this.init();
-    }
-
-    // ====================================
-    // INICIALIZACIÓN
-    // ====================================
-    init() {
+        // Configurar event listeners
         this.setupEventListeners();
+        
+        // Definir rutas
         this.defineRoutes();
-        this.handleInitialRoute();
         
-        console.log('🚀 TANCAT Router inicializado');
+        console.log('🧭 Router TANCAT inicializado');
     }
-
-    setupEventListeners() {
-        // Interceptar clics en enlaces
-        document.addEventListener('click', (e) => {
-            const link = e.target.closest('a[href]');
-            if (link && this.shouldInterceptLink(link)) {
-                e.preventDefault();
-                const href = link.getAttribute('href');
-                this.navigate(href);
-            }
-        });
-
-        // Manejar botones atrás/adelante del navegador
-        window.addEventListener('popstate', (e) => {
-            this.handlePopState(e);
-        });
-
-        // Manejar errores de carga
-        window.addEventListener('error', (e) => {
-            console.error('❌ Error de aplicación:', e.error);
-        });
-    }
-
-    shouldInterceptLink(link) {
-        const href = link.getAttribute('href');
-        
-        // No interceptar si:
-        if (!href || 
-            href.startsWith('http') || 
-            href.startsWith('//') ||
-            href.startsWith('mailto:') ||
-            href.startsWith('tel:') ||
-            href.startsWith('#') ||
-            link.hasAttribute('download') ||
-            link.getAttribute('target') === '_blank') {
-            return false;
-        }
-        
-        return true;
-    }
-
+    
     // ====================================
-    // DEFINICIÓN DE RUTAS
+    // CONFIGURACIÓN DE RUTAS
     // ====================================
+    
     defineRoutes() {
-        // Rutas públicas
+        // Rutas del cliente (públicas)
         this.addRoute('/', {
-            component: 'LoginPage',
+            title: 'TANCAT - Inicio',
+            component: 'ClienteHome',
+            layout: 'cliente',
+            requiresAuth: false,
+            meta: { description: 'Página principal del complejo deportivo TANCAT' }
+        });
+        
+        this.addRoute('/inicio', {
+            title: 'TANCAT - Inicio',
+            component: 'ClienteHome',
+            layout: 'cliente',
+            requiresAuth: false,
+            redirect: '/'
+        });
+        
+        // Rutas de autenticación
+        this.addRoute('/login', {
             title: 'TANCAT - Iniciar Sesión',
-            public: true,
-            redirectIfAuth: '/dashboard'
+            component: 'Login',
+            layout: 'auth',
+            requiresAuth: false,
+            meta: { description: 'Iniciar sesión en el sistema TANCAT' }
         });
-
-        // Rutas privadas - Dashboard
-        this.addRoute('/dashboard', {
-            component: 'DashboardPage',
+        
+        // Rutas de administración (protegidas)
+        this.addRoute('/admin', {
             title: 'TANCAT - Dashboard',
-            requireAuth: true
+            component: 'AdminDashboard',
+            layout: 'admin',
+            requiresAuth: true,
+            roles: ['admin', 'empleado'],
+            meta: { description: 'Panel de administración TANCAT' }
         });
-
-        // Rutas privadas - Módulos
-        this.addRoute('/reservas', {
-            component: 'ReservasPage',
-            title: 'TANCAT - Reservas',
-            requireAuth: true,
-            permissions: ['reservas.read']
+        
+        this.addRoute('/admin/dashboard', {
+            title: 'TANCAT - Dashboard',
+            component: 'AdminDashboard',
+            layout: 'admin',
+            requiresAuth: true,
+            redirect: '/admin'
         });
-
-        this.addRoute('/clientes', {
-            component: 'ClientesPage',
-            title: 'TANCAT - Clientes',
-            requireAuth: true,
-            permissions: ['clientes.read']
+        
+        this.addRoute('/admin/reservas', {
+            title: 'TANCAT - Gestión de Reservas',
+            component: 'AdminReservas',
+            layout: 'admin',
+            requiresAuth: true,
+            roles: ['admin', 'empleado']
         });
-
-        this.addRoute('/ventas', {
-            component: 'VentasPage',
-            title: 'TANCAT - Ventas',
-            requireAuth: true,
-            permissions: ['ventas.read']
+        
+        this.addRoute('/admin/clientes', {
+            title: 'TANCAT - Gestión de Clientes',
+            component: 'AdminClientes',
+            layout: 'admin',
+            requiresAuth: true,
+            roles: ['admin', 'empleado']
         });
-
-        this.addRoute('/torneos', {
-            component: 'TorneosPage',
-            title: 'TANCAT - Torneos',
-            requireAuth: true,
-            permissions: ['torneos.read']
+        
+        this.addRoute('/admin/ventas', {
+            title: 'TANCAT - Gestión de Ventas',
+            component: 'AdminVentas',
+            layout: 'admin',
+            requiresAuth: true,
+            roles: ['admin', 'empleado']
         });
-
-        this.addRoute('/inventario', {
-            component: 'InventarioPage',
-            title: 'TANCAT - Inventario',
-            requireAuth: true,
-            permissions: ['inventario.read']
+        
+        this.addRoute('/admin/torneos', {
+            title: 'TANCAT - Gestión de Torneos',
+            component: 'AdminTorneos',
+            layout: 'admin',
+            requiresAuth: true,
+            roles: ['admin', 'empleado']
         });
-
-        this.addRoute('/reportes', {
-            component: 'ReportesPage',
+        
+        this.addRoute('/admin/inventario', {
+            title: 'TANCAT - Gestión de Inventario',
+            component: 'AdminInventario',
+            layout: 'admin',
+            requiresAuth: true,
+            roles: ['admin', 'empleado']
+        });
+        
+        this.addRoute('/admin/reportes', {
             title: 'TANCAT - Reportes',
-            requireAuth: true,
-            permissions: ['reportes.read']
+            component: 'AdminReportes',
+            layout: 'admin',
+            requiresAuth: true,
+            roles: ['admin']
         });
-
+        
         // Rutas de error
-        this.addRoute('/error', {
-            component: 'ErrorPage',
-            title: 'TANCAT - Error',
-            public: true
-        });
-
         this.addRoute('/404', {
-            component: 'NotFoundPage',
             title: 'TANCAT - Página no encontrada',
-            public: true
+            component: 'Error404',
+            layout: 'error',
+            requiresAuth: false
+        });
+        
+        this.addRoute('/error', {
+            title: 'TANCAT - Error',
+            component: 'ErrorGeneral',
+            layout: 'error',
+            requiresAuth: false
         });
     }
-
+    
+    // ====================================
+    // GESTIÓN DE RUTAS
+    // ====================================
+    
     addRoute(path, config) {
         this.routes.set(path, {
             path,
-            component: config.component,
             title: config.title || 'TANCAT',
-            requireAuth: config.requireAuth || false,
-            permissions: config.permissions || [],
-            public: config.public || false,
-            redirectIfAuth: config.redirectIfAuth || null,
+            component: config.component,
+            layout: config.layout || 'default',
+            requiresAuth: config.requiresAuth || false,
+            roles: config.roles || [],
+            meta: config.meta || {},
+            redirect: config.redirect || null,
             beforeEnter: config.beforeEnter || null,
             afterEnter: config.afterEnter || null
         });
     }
-
+    
+    addMiddleware(middleware) {
+        this.middlewares.push(middleware);
+    }
+    
+    // ====================================
+    // EVENT LISTENERS
+    // ====================================
+    
+    setupEventListeners() {
+        // Manejar navegación del navegador
+        window.addEventListener('popstate', (e) => {
+            this.handlePopState(e);
+        });
+        
+        // Interceptar clicks en enlaces
+        document.addEventListener('click', (e) => {
+            this.handleLinkClick(e);
+        });
+        
+        // Manejar carga inicial
+        document.addEventListener('DOMContentLoaded', () => {
+            this.handleInitialLoad();
+        });
+    }
+    
+    handlePopState(e) {
+        if (e.state && e.state.path) {
+            this.navigateToPath(e.state.path, false);
+        } else {
+            this.navigateToPath(window.location.pathname, false);
+        }
+    }
+    
+    handleLinkClick(e) {
+        const link = e.target.closest('a[href]');
+        
+        if (!link) return;
+        
+        const href = link.getAttribute('href');
+        
+        // Ignorar enlaces externos o con target="_blank"
+        if (!href || 
+            href.startsWith('http') || 
+            href.startsWith('mailto:') || 
+            href.startsWith('tel:') ||
+            link.target === '_blank') {
+            return;
+        }
+        
+        // Ignorar enlaces con data-external
+        if (link.hasAttribute('data-external')) {
+            return;
+        }
+        
+        e.preventDefault();
+        this.navigateTo(href);
+    }
+    
+    handleInitialLoad() {
+        const path = window.location.pathname;
+        this.navigateToPath(path, false);
+    }
+    
     // ====================================
     // NAVEGACIÓN
     // ====================================
-    async navigate(path, options = {}) {
-        if (this.isNavigating) return;
-        
-        this.isNavigating = true;
+    
+    async navigateTo(path, pushState = true) {
+        if (this.isNavigating) {
+            console.warn('🧭 Navegación en progreso, ignorando nueva navegación');
+            return;
+        }
         
         try {
-            // Normalizar path
-            path = this.normalizePath(path);
-            
-            // Verificar si la ruta existe
-            const route = this.routes.get(path) || this.routes.get('/404');
-            
-            // Middleware de autenticación
-            const authCheck = await this.checkAuthentication(route);
-            if (!authCheck.allowed) {
-                this.isNavigating = false;
-                return this.navigate(authCheck.redirect);
-            }
-            
-            // Middleware de permisos
-            const permissionCheck = await this.checkPermissions(route);
-            if (!permissionCheck.allowed) {
-                this.isNavigating = false;
-                this.showAccessDenied();
-                return;
-            }
-            
-            // Ejecutar beforeEnter si existe
-            if (route.beforeEnter) {
-                const beforeResult = await route.beforeEnter(route, this.currentRoute);
-                if (beforeResult === false) {
-                    this.isNavigating = false;
-                    return;
-                }
-            }
-            
-            // Mostrar loading
-            this.showLoading();
-            
-            // Cargar componente
-            await this.loadComponent(route);
-            
-            // Actualizar historial del navegador
-            if (!options.replace) {
-                history.pushState({ path }, route.title, path);
-            } else {
-                history.replaceState({ path }, route.title, path);
-            }
-            
-            // Actualizar título
-            document.title = route.title;
-            
-            // Actualizar ruta actual
-            this.currentRoute = route;
-            
-            // Ejecutar afterEnter si existe
-            if (route.afterEnter) {
-                await route.afterEnter(route);
-            }
-            
-            // Ocultar loading
-            this.hideLoading();
-            
-            console.log(`🧭 Navegado a: ${path}`);
-            
-        } catch (error) {
-            console.error('❌ Error en navegación:', error);
-            this.navigate('/error');
+            this.isNavigating = true;
+            await this.navigateToPath(path, pushState);
         } finally {
             this.isNavigating = false;
         }
     }
-
-    normalizePath(path) {
-        // Remover query params y hash para matching
-        return path.split('?')[0].split('#')[0] || '/';
-    }
-
-    handleInitialRoute() {
-        const currentPath = window.location.pathname;
-        this.navigate(currentPath, { replace: true });
-    }
-
-    handlePopState(e) {
-        const path = e.state?.path || window.location.pathname;
-        this.navigate(path, { replace: true });
-    }
-
-    // ====================================
-    // AUTENTICACIÓN Y PERMISOS
-    // ====================================
-    async checkAuthentication(route) {
-        // Si es ruta pública, permitir
-        if (route.public) {
-            // Si está autenticado y hay redirect, redirigir
-            if (route.redirectIfAuth && await window.authService.isAuthenticated()) {
-                return { allowed: false, redirect: route.redirectIfAuth };
+    
+    async navigateToPath(path, pushState = true) {
+        try {
+            // Normalizar path
+            path = this.normalizePath(path);
+            
+            // Buscar ruta
+            let route = this.findRoute(path);
+            
+            if (!route) {
+                console.warn(`🧭 Ruta no encontrada: ${path}`);
+                route = this.routes.get('/404');
+                path = '/404';
             }
+            
+            // Manejar redirecciones
+            if (route.redirect) {
+                return this.navigateTo(route.redirect, pushState);
+            }
+            
+            // Ejecutar middlewares
+            const middlewareResult = await this.executeMiddlewares(route, path);
+            if (!middlewareResult.continue) {
+                if (middlewareResult.redirect) {
+                    return this.navigateTo(middlewareResult.redirect, pushState);
+                }
+                return;
+            }
+            
+            // Verificar autenticación
+            const authResult = await this.checkAuthentication(route);
+            if (!authResult.allowed) {
+                return this.navigateTo(authResult.redirect || '/login', pushState);
+            }
+            
+            // Ejecutar beforeEnter hook
+            if (route.beforeEnter) {
+                const beforeResult = await route.beforeEnter(route, path);
+                if (beforeResult === false) {
+                    return;
+                }
+                if (typeof beforeResult === 'string') {
+                    return this.navigateTo(beforeResult, pushState);
+                }
+            }
+            
+            // Actualizar historial del navegador
+            if (pushState) {
+                history.pushState({ path }, route.title, path);
+            }
+            
+            // Actualizar título de la página
+            document.title = route.title;
+            
+            // Actualizar meta tags
+            this.updateMetaTags(route.meta);
+            
+            // Cargar componente
+            await this.loadComponent(route, path);
+            
+            // Actualizar ruta actual
+            this.currentRoute = { ...route, path };
+            this.history.push(path);
+            
+            // Ejecutar afterEnter hook
+            if (route.afterEnter) {
+                await route.afterEnter(route, path);
+            }
+            
+            // Emitir evento de navegación
+            this.emitNavigationEvent(route, path);
+            
+            console.log(`🧭 Navegación exitosa a: ${path}`);
+            
+        } catch (error) {
+            console.error('🧭 Error durante la navegación:', error);
+            this.navigateTo('/error', false);
+        }
+    }
+    
+    // ====================================
+    // UTILIDADES
+    // ====================================
+    
+    normalizePath(path) {
+        // Remover parámetros de consulta para el matching
+        const cleanPath = path.split('?')[0].split('#')[0];
+        
+        // Asegurar que empiece con /
+        return cleanPath.startsWith('/') ? cleanPath : '/' + cleanPath;
+    }
+    
+    findRoute(path) {
+        // Buscar coincidencia exacta primero
+        if (this.routes.has(path)) {
+            return this.routes.get(path);
+        }
+        
+        // Buscar rutas con parámetros (implementación básica)
+        for (const [routePath, route] of this.routes) {
+            if (this.matchesRoute(path, routePath)) {
+                return route;
+            }
+        }
+        
+        return null;
+    }
+    
+    matchesRoute(path, routePath) {
+        // Implementación básica de matching de rutas
+        // Para rutas dinámicas como /admin/:id
+        const pathSegments = path.split('/');
+        const routeSegments = routePath.split('/');
+        
+        if (pathSegments.length !== routeSegments.length) {
+            return false;
+        }
+        
+        return routeSegments.every((segment, index) => {
+            return segment.startsWith(':') || segment === pathSegments[index];
+        });
+    }
+    
+    extractParams(path, routePath) {
+        const pathSegments = path.split('/');
+        const routeSegments = routePath.split('/');
+        const params = {};
+        
+        routeSegments.forEach((segment, index) => {
+            if (segment.startsWith(':')) {
+                const paramName = segment.slice(1);
+                params[paramName] = pathSegments[index];
+            }
+        });
+        
+        return params;
+    }
+    
+    // ====================================
+    // MIDDLEWARES Y AUTENTICACIÓN
+    // ====================================
+    
+    async executeMiddlewares(route, path) {
+        for (const middleware of this.middlewares) {
+            try {
+                const result = await middleware(route, path);
+                if (result && !result.continue) {
+                    return result;
+                }
+            } catch (error) {
+                console.error('🧭 Error en middleware:', error);
+                return { continue: false, redirect: '/error' };
+            }
+        }
+        
+        return { continue: true };
+    }
+    
+    async checkAuthentication(route) {
+        if (!route.requiresAuth) {
             return { allowed: true };
         }
         
-        // Si requiere auth, verificar
-        if (route.requireAuth) {
-            const isAuth = await window.authService.isAuthenticated();
-            if (!isAuth) {
+        // Verificar si el usuario está autenticado
+        if (!window.authService || !await window.authService.isAuthenticated()) {
+            return { allowed: false, redirect: '/login' };
+        }
+        
+        // Verificar roles si están especificados
+        if (route.roles && route.roles.length > 0) {
+            const user = await window.authService.getCurrentUser();
+            if (!user || !route.roles.includes(user.role)) {
                 return { allowed: false, redirect: '/' };
             }
         }
         
         return { allowed: true };
     }
-
-    async checkPermissions(route) {
-        if (!route.permissions || route.permissions.length === 0) {
-            return { allowed: true };
-        }
-        
-        try {
-            const userPermissions = await window.authService.getPermissions();
-            const hasPermission = route.permissions.some(permission => 
-                userPermissions.includes(permission)
-            );
-            
-            return { allowed: hasPermission };
-        } catch (error) {
-            console.error('❌ Error verificando permisos:', error);
-            return { allowed: false };
-        }
-    }
-
+    
     // ====================================
     // CARGA DE COMPONENTES
     // ====================================
-    async loadComponent(route) {
-        const container = document.getElementById('app-container') || document.body;
-        
+    
+    async loadComponent(route, path) {
         try {
-            // Intentar cargar componente específico
-            const componentHtml = await this.loadComponentHtml(route.component);
-            container.innerHTML = componentHtml;
+            // Mostrar indicador de carga
+            this.showLoadingIndicator();
             
-            // Ejecutar JavaScript del componente
-            await this.executeComponentScript(route.component);
+            // Cargar layout si es necesario
+            await this.loadLayout(route.layout);
+            
+            // Cargar componente específico
+            const componentModule = await this.loadComponentModule(route.component);
+            
+            // Renderizar componente
+            await this.renderComponent(componentModule, route, path);
+            
+            // Ocultar indicador de carga
+            this.hideLoadingIndicator();
             
         } catch (error) {
-            console.error(`❌ Error cargando componente ${route.component}:`, error);
-            // Fallback a página de error
-            container.innerHTML = this.getErrorPageHtml(error.message);
+            console.error('🧭 Error cargando componente:', error);
+            this.hideLoadingIndicator();
+            throw error;
         }
     }
-
-    async loadComponentHtml(componentName) {
-        const componentPath = `/pages/${componentName.toLowerCase().replace('page', '')}.html`;
+    
+    async loadLayout(layoutName) {
+        const mainContent = document.getElementById('main-content');
+        if (!mainContent) return;
         
+        // Por ahora, usar layouts simples
+        // En una implementación más compleja, podrías cargar layouts dinámicamente
+        mainContent.className = `layout-${layoutName}`;
+    }
+    
+    async loadComponentModule(componentName) {
         try {
-            const response = await fetch(componentPath);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            // Cargar módulo del componente dinámicamente
+            const module = await import(`./components/${componentName}.js`);
+            return module.default || module;
+        } catch (error) {
+            console.warn(`🧭 No se pudo cargar módulo ${componentName}, usando fallback`);
+            
+            // Fallback a componente básico
+            return {
+                render: () => `
+                    <div class="component-fallback">
+                        <h2>Componente en desarrollo</h2>
+                        <p>El componente <strong>${componentName}</strong> está siendo desarrollado.</p>
+                    </div>
+                `
+            };
+        }
+    }
+    
+    async renderComponent(component, route, path) {
+        const mainContent = document.getElementById('main-content');
+        if (!mainContent) return;
+        
+        // Limpiar contenido anterior
+        mainContent.innerHTML = '';
+        
+        // Renderizar nuevo componente
+        if (typeof component.render === 'function') {
+            const html = await component.render(route, path);
+            mainContent.innerHTML = html;
+        } else if (typeof component === 'string') {
+            mainContent.innerHTML = component;
+        } else {
+            mainContent.innerHTML = '<div>Error: Componente inválido</div>';
+        }
+        
+        // Ejecutar inicialización del componente si existe
+        if (typeof component.init === 'function') {
+            await component.init(route, path);
+        }
+        
+        // Mostrar contenido principal
+        mainContent.style.display = 'block';
+    }
+    
+    // ====================================
+    // INDICADORES DE CARGA
+    // ====================================
+    
+    showLoadingIndicator() {
+        const existingIndicator = document.getElementById('route-loading');
+        if (existingIndicator) return;
+        
+        const indicator = document.createElement('div');
+        indicator.id = 'route-loading';
+        indicator.innerHTML = `
+            <div class="route-loading-overlay">
+                <div class="route-loading-spinner"></div>
+            </div>
+        `;
+        indicator.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(44, 62, 80, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9998;
+        `;
+        
+        document.body.appendChild(indicator);
+    }
+    
+    hideLoadingIndicator() {
+        const indicator = document.getElementById('route-loading');
+        if (indicator) {
+            indicator.remove();
+        }
+        
+        // Ocultar pantalla de carga inicial
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+            loadingScreen.style.display = 'none';
+        }
+    }
+    
+    // ====================================
+    // META TAGS Y SEO
+    // ====================================
+    
+    updateMetaTags(meta) {
+        if (meta.description) {
+            let metaDesc = document.querySelector('meta[name="description"]');
+            if (!metaDesc) {
+                metaDesc = document.createElement('meta');
+                metaDesc.name = 'description';
+                document.head.appendChild(metaDesc);
             }
-            return await response.text();
-        } catch (error) {
-            console.warn(`⚠️ No se pudo cargar ${componentPath}, usando fallback`);
-            return this.getComponentFallback(componentName);
+            metaDesc.content = meta.description;
         }
-    }
-
-    async executeComponentScript(componentName) {
-        const scriptPath = `/assets/js/pages/${componentName.toLowerCase().replace('page', '')}.js`;
         
-        try {
-            // Verificar si ya está cargado
-            if (document.querySelector(`script[src="${scriptPath}"]`)) {
-                return;
+        if (meta.keywords) {
+            let metaKeywords = document.querySelector('meta[name="keywords"]');
+            if (!metaKeywords) {
+                metaKeywords = document.createElement('meta');
+                metaKeywords.name = 'keywords';
+                document.head.appendChild(metaKeywords);
             }
-            
-            const script = document.createElement('script');
-            script.src = scriptPath;
-            script.async = true;
-            
-            return new Promise((resolve, reject) => {
-                script.onload = resolve;
-                script.onerror = () => {
-                    console.warn(`⚠️ Script opcional ${scriptPath} no encontrado`);
-                    resolve(); // No fallar por scripts opcionales
-                };
-                document.head.appendChild(script);
-            });
-            
-        } catch (error) {
-            console.warn(`⚠️ Error cargando script ${scriptPath}:`, error);
+            metaKeywords.content = meta.keywords;
         }
     }
-
-    getComponentFallback(componentName) {
-        const fallbacks = {
-            'LoginPage': this.getLoginPageHtml(),
-            'DashboardPage': this.getDashboardPageHtml(),
-            'ErrorPage': this.getErrorPageHtml(),
-            'NotFoundPage': this.getNotFoundPageHtml()
-        };
-        
-        return fallbacks[componentName] || fallbacks['NotFoundPage'];
-    }
-
+    
     // ====================================
-    // PÁGINAS FALLBACK
+    // EVENTOS
     // ====================================
-    getLoginPageHtml() {
-        return `
-            <div class="login-container">
-                <div class="logo-container">
-                    <div class="logo">TANCAT</div>
-                    <div class="subtitle">Sistema de Administración</div>
-                </div>
-                <div class="welcome-text">
-                    <h2>Iniciar Sesión</h2>
-                    <p>Accede al sistema de gestión del complejo deportivo</p>
-                </div>
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="email">Email o Usuario</label>
-                        <input type="text" id="email" name="email" placeholder="Ingresa tu email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Contraseña</label>
-                        <input type="password" id="password" name="password" placeholder="Ingresa tu contraseña" required>
-                    </div>
-                    <button type="submit" class="login-btn">Ingresar al Sistema</button>
-                </form>
-                <div id="login-error" class="error-message" style="display: none;"></div>
-            </div>
-        `;
+    
+    emitNavigationEvent(route, path) {
+        const event = new CustomEvent('routeChanged', {
+            detail: { route, path }
+        });
+        window.dispatchEvent(event);
     }
-
-    getDashboardPageHtml() {
-        return `
-            <div class="dashboard-container">
-                <header class="dashboard-header">
-                    <div class="header-content">
-                        <div class="logo-section">
-                            <h1>TANCAT</h1>
-                            <span class="system-subtitle">Sistema de Administración</span>
-                        </div>
-                        <div class="user-section">
-                            <div class="user-info">
-                                <span class="user-name" id="userName">Cargando...</span>
-                                <span class="user-role" id="userRole">...</span>
-                            </div>
-                            <button class="btn btn-danger" onclick="window.authService.logout()">
-                                🚪 Cerrar Sesión
-                            </button>
-                        </div>
-                    </div>
-                </header>
-                
-                <nav class="main-navigation">
-                    <div class="nav-content">
-                        <button class="nav-item active" onclick="router.navigate('/dashboard')">🏠 Dashboard</button>
-                        <button class="nav-item" onclick="router.navigate('/reservas')">📅 Reservas</button>
-                        <button class="nav-item" onclick="router.navigate('/clientes')">👥 Clientes</button>
-                        <button class="nav-item" onclick="router.navigate('/ventas')">💰 Ventas</button>
-                        <button class="nav-item" onclick="router.navigate('/torneos')">🏆 Torneos</button>
-                        <button class="nav-item" onclick="router.navigate('/inventario')">📦 Inventario</button>
-                        <button class="nav-item" onclick="router.navigate('/reportes')">📊 Reportes</button>
-                    </div>
-                </nav>
-                
-                <main class="dashboard-main">
-                    <h2>Dashboard Principal</h2>
-                    <p>Bienvenido al sistema de administración TANCAT</p>
-                    <div class="loading-message">Cargando contenido del dashboard...</div>
-                </main>
-            </div>
-        `;
-    }
-
-    getErrorPageHtml(message = 'Error desconocido') {
-        return `
-            <div class="error-container">
-                <div class="error-content">
-                    <h1>❌ Error</h1>
-                    <p>Ha ocurrido un error en la aplicación:</p>
-                    <div class="error-details">${message}</div>
-                    <div class="error-actions">
-                        <button onclick="router.navigate('/dashboard')" class="btn btn-primary">
-                            Ir al Dashboard
-                        </button>
-                        <button onclick="window.location.reload()" class="btn btn-secondary">
-                            Recargar Página
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    getNotFoundPageHtml() {
-        return `
-            <div class="error-container">
-                <div class="error-content">
-                    <h1>🔍 404 - Página no encontrada</h1>
-                    <p>La página que buscas no existe o ha sido movida.</p>
-                    <div class="error-actions">
-                        <button onclick="router.navigate('/dashboard')" class="btn btn-primary">
-                            Ir al Dashboard
-                        </button>
-                        <button onclick="history.back()" class="btn btn-secondary">
-                            Volver Atrás
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
+    
     // ====================================
-    // UI HELPERS
+    // API PÚBLICA
     // ====================================
-    showLoading() {
-        document.body.classList.add(this.config.loadingClass);
-        
-        // Crear overlay de loading si no existe
-        if (!document.getElementById('router-loading')) {
-            const loading = document.createElement('div');
-            loading.id = 'router-loading';
-            loading.innerHTML = `
-                <div class="loading-overlay">
-                    <div class="loading-spinner"></div>
-                    <div class="loading-text">Cargando...</div>
-                </div>
-            `;
-            document.body.appendChild(loading);
-        }
-    }
-
-    hideLoading() {
-        document.body.classList.remove(this.config.loadingClass);
-        
-        const loading = document.getElementById('router-loading');
-        if (loading) {
-            loading.remove();
-        }
-    }
-
-    showAccessDenied() {
-        const container = document.getElementById('app-container') || document.body;
-        container.innerHTML = `
-            <div class="access-denied-container">
-                <div class="access-denied-content">
-                    <h1>🚫 Acceso Denegado</h1>
-                    <p>No tienes permisos para acceder a esta sección.</p>
-                    <div class="error-actions">
-                        <button onclick="router.navigate('/dashboard')" class="btn btn-primary">
-                            Ir al Dashboard
-                        </button>
-                        <button onclick="history.back()" class="btn btn-secondary">
-                            Volver Atrás
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    // ====================================
-    // API HELPERS
-    // ====================================
-    getApiUrl(endpoint) {
-        return `${this.config.apiUrl}${endpoint}`;
-    }
-
-    // ====================================
-    // UTILIDADES PÚBLICAS
-    // ====================================
+    
     getCurrentRoute() {
         return this.currentRoute;
     }
-
-    isCurrentRoute(path) {
-        return this.currentRoute?.path === path;
+    
+    getCurrentPath() {
+        return window.location.pathname;
     }
-
-    getRoutes() {
-        return Array.from(this.routes.values());
+    
+    goBack() {
+        if (this.history.length > 1) {
+            this.history.pop(); // Remover página actual
+            const previousPath = this.history[this.history.length - 1];
+            this.navigateTo(previousPath);
+        } else {
+            this.navigateTo('/');
+        }
+    }
+    
+    refresh() {
+        this.navigateToPath(this.getCurrentPath(), false);
     }
 }
 
 // ====================================
-// INICIALIZACIÓN GLOBAL
+// EXPORTAR E INICIALIZAR
 // ====================================
+
+// Crear instancia global del router
 window.router = new TancatRouter();
 
-// Exponer para uso global
-window.navigateTo = (path) => window.router.navigate(path);
+// Función global para navegación
+window.navigateTo = (path) => {
+    window.router.navigateTo(path);
+};
+
+// Exportar para uso en módulos
+export default window.router;

@@ -1,7 +1,7 @@
 {
   "name": "tancat-backend",
   "version": "1.0.0",
-  "description": "Sistema de administración para Complejo Deportivo TANCAT - Backend",
+  "description": "Sistema de administración para Complejo Deportivo TANCAT con Neon Database",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,79 +9,56 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "migrate": "node database/migrations/migrate.js",
-    "seed": "node database/seeders/seed.js",
-    "db:setup": "npm run migrate && npm run seed",
-    "db:reset": "npm run db:setup",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "clean": "rm -rf node_modules package-lock.json",
-    "fresh": "npm run clean && npm install",
-    "logs": "pm2 logs tancat-backend",
-    "status": "pm2 status",
-    "production": "NODE_ENV=production node server.js",
-    "pm2:start": "pm2 start ecosystem.config.js",
-    "pm2:stop": "pm2 stop tancat-backend",
-    "pm2:restart": "pm2 restart tancat-backend",
-    "health": "curl -f http://localhost:3000/api/health || exit 1",
-    "docs": "npm run start && echo 'API Docs disponibles en http://localhost:3000/api/docs'"
+    "db:test": "node -e \"require('./config/database').testNeonConnection()\"",
+    "health": "curl http://localhost:3000/api/health"
   },
   "keywords": [
     "nodejs",
     "express",
     "postgresql",
-    "supabase",
+    "neon",
     "api",
     "tancat",
     "complejo-deportivo",
-    "padel",
     "reservas",
-    "auth",
-    "jwt"
+    "padel"
   ],
   "author": "TANCAT Development Team",
   "license": "MIT",
   "dependencies": {
-    "@supabase/supabase-js": "^2.53.0",
-    "bcryptjs": "^2.4.3",
-    "compression": "^1.7.4",
-    "cookie-parser": "^1.4.6",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "express-fileupload": "^1.4.3",
-    "express-mongo-sanitize": "^2.2.0",
-    "express-rate-limit": "^7.1.5",
-    "express-slow-down": "^2.0.1",
-    "express-validator": "^7.0.1",
+    "cors": "^2.8.5",
     "helmet": "^7.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "moment": "^2.29.4",
-    "moment-timezone": "^0.5.43",
-    "morgan": "^1.10.0",
-    "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.7",
+    "dotenv": "^16.3.1",
     "pg": "^8.11.3",
     "pg-pool": "^3.6.1",
-    "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.0",
-    "uuid": "^9.0.1"
+    "express-validator": "^7.0.1",
+    "express-rate-limit": "^7.1.5",
+    "compression": "^1.7.4",
+    "morgan": "^1.10.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^9.0.1",
+    "moment": "^2.29.4",
+    "nodemailer": "^6.9.7"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.8",
-    "cross-env": "^7.0.3",
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
     "eslint": "^8.54.0",
-    "eslint-config-prettier": "^9.0.0",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.29.0",
     "eslint-plugin-n": "^16.3.1",
     "eslint-plugin-promise": "^6.1.1",
-    "jest": "^29.7.0",
-    "nodemon": "^3.0.2",
-    "prettier": "^3.1.0",
-    "supertest": "^6.3.3"
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0"
+  },
+  "optionalDependencies": {
+    "express-fileupload": "^1.4.3"
   },
   "engines": {
     "node": ">=16.0.0",
@@ -95,25 +72,11 @@
     "url": "https://github.com/tu-usuario/tancat-system/issues"
   },
   "homepage": "https://github.com/tu-usuario/tancat-system#readme",
-  "jest": {
-    "testEnvironment": "node",
-    "coverageDirectory": "coverage",
-    "collectCoverageFrom": [
-      "**/*.js",
-      "!node_modules/**",
-      "!coverage/**",
-      "!jest.config.js"
-    ],
-    "testMatch": [
-      "**/__tests__/**/*.js",
-      "**/?(*.)+(spec|test).js"
-    ]
-  },
   "nodemonConfig": {
     "ignore": [
-      "node_modules",
-      "uploads",
-      "logs",
+      "node_modules/",
+      "uploads/",
+      "logs/",
       "*.test.js"
     ],
     "env": {
@@ -121,30 +84,15 @@
     },
     "ext": "js,json"
   },
-  "eslintConfig": {
-    "extends": [
-      "standard",
-      "prettier"
-    ],
-    "env": {
-      "node": true,
-      "es2021": true,
-      "jest": true
-    },
-    "rules": {
-      "no-console": "off",
-      "no-unused-vars": [
-        "error",
-        {
-          "argsIgnorePattern": "^_"
-        }
-      ]
-    }
-  },
-  "prettier": {
-    "semi": true,
-    "singleQuote": true,
-    "tabWidth": 2,
-    "trailingComma": "es5"
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "**/*.{js,jsx}",
+      "!**/node_modules/**",
+      "!**/coverage/**",
+      "!**/logs/**",
+      "!**/uploads/**"
+    ]
   }
 }

@@ -8,7 +8,7 @@ const express = require('express');
 const router = express.Router();
 
 // Importar controladores y middlewares
-const clienteController = require('../controllers/clientesController');
+const clienteController = require('../controllers/clienteController');
 
 // Middleware de base de datos
 const { injectDbClient } = require('../config/database');
