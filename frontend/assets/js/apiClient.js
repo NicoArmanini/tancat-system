@@ -1,716 +1,259 @@
 /**
- * TANCAT - Cliente API
+ * TANCAT - Sistema Cliente
  * Archivo: apiClient.js
- * Descripción: Cliente para comunicación con API backend (Neon Database)
+ * Descripción: Cliente para comunicación con la API del backend
  */
 
-class TancatApiClient {
+class ApiClient {
     constructor() {
-        this.baseURL = window.APP_CONFIG?.API_BASE_URL || 'http://localhost:3000/api';
-        this.timeout = 30000; // 30 segundos
-        this.retryAttempts = 3;
-        this.retryDelay = 1000; // 1 segundo
+        this.baseURL = 'http://localhost:3000/api';
+        this.timeout = 10000; // 10 segundos
+        this.isOnline = true;
         this.cache = new Map();
-        this.cacheTimeout = 5 * 60 * 1000; // 5 minutos
+        this.retryAttempts = 3;
         
-        // Interceptores
-        this.requestInterceptors = [];
-        this.responseInterceptors = [];
-        
-        // Estado de conexión
-        this.isOnline = navigator.onLine;
-        this.connectionStatus = 'unknown';
-        
-        this.setupEventListeners();
-        this.testConnection();
-        
-        console.log('📡 API Client TANCAT inicializado');
-        console.log(`🔗 Base URL: ${this.baseURL}`);
+        // Verificar conectividad inicial
+        this.checkConnectivity();
     }
-    
-    // ====================================
-    // CONFIGURACIÓN Y EVENT LISTENERS
-    // ====================================
-    
-    setupEventListeners() {
-        // Monitorear estado de conexión
-        window.addEventListener('online', () => {
-            this.isOnline = true;
-            this.testConnection();
-            console.log('🌐 Conexión restaurada');
-        });
-        
-        window.addEventListener('offline', () => {
-            this.isOnline = false;
-            this.connectionStatus = 'offline';
-            console.log('📵 Conexión perdida');
-        });
-    }
-    
-    // ====================================
-    // GESTIÓN DE CONEXIÓN
-    // ====================================
-    
-    async testConnection() {
+
+    /**
+     * Verificar conectividad con el backend
+     */
+    async checkConnectivity() {
         try {
-            const response = await this.makeRequest('GET', '/health', null, {
-                timeout: 5000,
-                skipAuth: true,
-                skipCache: true
+            const response = await fetch(`${this.baseURL}/health`, {
+                method: 'GET',
+                timeout: 5000
             });
             
-            if (response.success) {
-                this.connectionStatus = 'connected';
-                console.log('✅ Conexión API establecida');
-                return true;
+            this.isOnline = response.ok;
+            
+            if (this.isOnline) {
+                console.log('✅ Conexión establecida con el backend');
             } else {
-                this.connectionStatus = 'error';
-                console.warn('⚠️ API responde pero con errores');
-                return false;
+                console.warn('⚠️ Backend responde pero con errores');
             }
+            
+            return this.isOnline;
+            
         } catch (error) {
-            this.connectionStatus = 'disconnected';
-            console.warn('❌ API no disponible:', error.message);
+            this.isOnline = false;
+            console.error('❌ Sin conexión al backend:', error.message);
             return false;
         }
     }
-    
-    getConnectionStatus() {
-        return {
-            isOnline: this.isOnline,
-            apiStatus: this.connectionStatus,
-            baseURL: this.baseURL
-        };
-    }
-    
-    // ====================================
-    // INTERCEPTORES
-    // ====================================
-    
-    addRequestInterceptor(interceptor) {
-        this.requestInterceptors.push(interceptor);
-    }
-    
-    addResponseInterceptor(interceptor) {
-        this.responseInterceptors.push(interceptor);
-    }
-    
-    async executeRequestInterceptors(config) {
-        let modifiedConfig = { ...config };
+
+    /**
+     * Realizar petición HTTP genérica
+     */
+    async request(endpoint, options = {}) {
+        const url = `${this.baseURL}${endpoint}`;
         
-        for (const interceptor of this.requestInterceptors) {
-            try {
-                modifiedConfig = await interceptor(modifiedConfig) || modifiedConfig;
-            } catch (error) {
-                console.error('Error en interceptor de request:', error);
-            }
-        }
-        
-        return modifiedConfig;
-    }
-    
-    async executeResponseInterceptors(response, config) {
-        let modifiedResponse = response;
-        
-        for (const interceptor of this.responseInterceptors) {
-            try {
-                modifiedResponse = await interceptor(modifiedResponse, config) || modifiedResponse;
-            } catch (error) {
-                console.error('Error en interceptor de response:', error);
-            }
-        }
-        
-        return modifiedResponse;
-    }
-    
-    // ====================================
-    // GESTIÓN DE CACHE
-    // ====================================
-    
-    getCacheKey(method, url, params) {
-        const key = `${method}:${url}`;
-        if (params && Object.keys(params).length > 0) {
-            return `${key}:${JSON.stringify(params)}`;
-        }
-        return key;
-    }
-    
-    getFromCache(cacheKey) {
-        const cached = this.cache.get(cacheKey);
-        if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-            return cached.data;
-        }
-        
-        // Limpiar entrada caducada
-        if (cached) {
-            this.cache.delete(cacheKey);
-        }
-        
-        return null;
-    }
-    
-    setCache(cacheKey, data) {
-        this.cache.set(cacheKey, {
-            data,
-            timestamp: Date.now()
-        });
-        
-        // Limpiar cache viejo periódicamente
-        if (this.cache.size > 100) {
-            this.cleanOldCache();
-        }
-    }
-    
-    cleanOldCache() {
-        const now = Date.now();
-        for (const [key, value] of this.cache.entries()) {
-            if (now - value.timestamp > this.cacheTimeout) {
-                this.cache.delete(key);
-            }
-        }
-    }
-    
-    clearCache() {
-        this.cache.clear();
-        console.log('🗑️ Cache API limpiado');
-    }
-    
-    // ====================================
-    // MÉTODOS HTTP PRINCIPALES
-    // ====================================
-    
-    async makeRequest(method, endpoint, data = null, options = {}) {
-        const config = await this.prepareRequestConfig(method, endpoint, data, options);
-        
-        // Verificar cache para requests GET
-        if (method === 'GET' && !options.skipCache) {
-            const cacheKey = this.getCacheKey(method, endpoint, data);
-            const cached = this.getFromCache(cacheKey);
-            if (cached) {
-                console.log(`📦 Respuesta desde cache: ${endpoint}`);
-                return cached;
-            }
-        }
-        
-        // Realizar request con reintentos
-        const response = await this.makeRequestWithRetry(config);
-        
-        // Cachear respuesta si es GET y exitosa
-        if (method === 'GET' && !options.skipCache && response.success) {
-            const cacheKey = this.getCacheKey(method, endpoint, data);
-            this.setCache(cacheKey, response);
-        }
-        
-        return response;
-    }
-    
-    async prepareRequestConfig(method, endpoint, data, options) {
-        // Configuración base
-        let config = {
-            method: method.toUpperCase(),
-            url: endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`,
+        const config = {
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                ...options.headers
             },
-            data,
-            timeout: options.timeout || this.timeout,
-            skipAuth: options.skipAuth || false,
-            skipCache: options.skipCache || false
+            ...options
         };
-        
-        // Agregar autenticación si no se omite
-        if (!options.skipAuth && window.authService) {
-            const token = await window.authService.getToken();
-            if (token) {
-                config.headers['Authorization'] = `Bearer ${token}`;
+
+        // Verificar caché para peticiones GET
+        if (!options.method || options.method === 'GET') {
+            const cached = this.cache.get(url);
+            if (cached && Date.now() - cached.timestamp < 300000) { // 5 minutos
+                return cached.data;
             }
         }
-        
-        // Ejecutar interceptores de request
-        config = await this.executeRequestInterceptors(config);
-        
-        return config;
-    }
-    
-    async makeRequestWithRetry(config, attempt = 1) {
-        try {
-            const response = await this.fetchWithTimeout(config);
-            const result = await this.processResponse(response, config);
-            
-            // Ejecutar interceptores de response
-            return await this.executeResponseInterceptors(result, config);
-            
-        } catch (error) {
-            console.error(`❌ Error en request (intento ${attempt}):`, error.message);
-            
-            // Reintentar si es apropiado
-            if (this.shouldRetry(error, attempt)) {
-                console.log(`🔄 Reintentando request (${attempt + 1}/${this.retryAttempts})`);
-                await this.delay(this.retryDelay * attempt);
-                return this.makeRequestWithRetry(config, attempt + 1);
+
+        let attempt = 0;
+        while (attempt < this.retryAttempts) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+                
+                const response = await fetch(url, {
+                    ...config,
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Cachear respuestas exitosas de GET
+                if (!options.method || options.method === 'GET') {
+                    this.cache.set(url, {
+                        data,
+                        timestamp: Date.now()
+                    });
+                }
+                
+                this.isOnline = true;
+                return data;
+                
+            } catch (error) {
+                attempt++;
+                
+                if (error.name === 'AbortError') {
+                    console.warn(`⏱️ Timeout en petición a ${endpoint} (intento ${attempt})`);
+                } else {
+                    console.warn(`❌ Error en petición a ${endpoint} (intento ${attempt}):`, error.message);
+                }
+                
+                // Si es el último intento, propagar el error
+                if (attempt >= this.retryAttempts) {
+                    this.isOnline = false;
+                    throw new Error(`Error después de ${this.retryAttempts} intentos: ${error.message}`);
+                }
+                
+                // Esperar antes del siguiente intento
+                await this.delay(1000 * attempt);
             }
-            
-            throw this.createErrorResponse(error, config);
         }
     }
-    
-    async fetchWithTimeout(config) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), config.timeout);
-        
-        try {
-            const fetchOptions = {
-                method: config.method,
-                headers: config.headers,
-                signal: controller.signal
-            };
-            
-            // Agregar body si no es GET o HEAD
-            if (config.data && !['GET', 'HEAD'].includes(config.method)) {
-                fetchOptions.body = JSON.stringify(config.data);
-            }
-            
-            const response = await fetch(config.url, fetchOptions);
-            clearTimeout(timeoutId);
-            
-            return response;
-        } catch (error) {
-            clearTimeout(timeoutId);
-            throw error;
-        }
-    }
-    
-    async processResponse(response, config) {
-        const result = {
-            success: response.ok,
-            status: response.status,
-            statusText: response.statusText,
-            headers: Object.fromEntries(response.headers.entries()),
-            config
-        };
-        
-        try {
-            const contentType = response.headers.get('content-type');
-            
-            if (contentType && contentType.includes('application/json')) {
-                result.data = await response.json();
-            } else {
-                result.data = await response.text();
-            }
-        } catch (error) {
-            console.warn('⚠️ Error procesando respuesta:', error);
-            result.data = null;
-        }
-        
-        // Si la respuesta no es exitosa, crear error estructurado
-        if (!response.ok) {
-            const error = new Error(
-                result.data?.message || 
-                result.data?.error || 
-                `HTTP ${response.status}: ${response.statusText}`
-            );
-            error.response = result;
-            error.status = response.status;
-            throw error;
-        }
-        
-        return result.data || result;
-    }
-    
-    shouldRetry(error, attempt) {
-        // No reintentar si ya alcanzamos el máximo
-        if (attempt >= this.retryAttempts) {
-            return false;
-        }
-        
-        // Reintentar en errores de red o timeouts
-        if (error.name === 'AbortError' || 
-            error.name === 'TypeError' || 
-            error.message.includes('fetch')) {
-            return true;
-        }
-        
-        // Reintentar en errores 5xx del servidor
-        if (error.status >= 500) {
-            return true;
-        }
-        
-        return false;
-    }
-    
-    createErrorResponse(error, config) {
-        return {
-            success: false,
-            error: error.message,
-            status: error.status || 0,
-            data: error.response?.data || null,
-            config
-        };
-    }
-    
+
+    /**
+     * Delay helper
+     */
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
-    
+
+    /**
+     * Limpiar caché
+     */
+    clearCache() {
+        this.cache.clear();
+        console.log('🗑️ Caché de API limpiado');
+    }
+
     // ====================================
-    // MÉTODOS HTTP CONVENIENTES
+    // MÉTODOS ESPECÍFICOS PARA EL CLIENTE
     // ====================================
-    
-    async get(endpoint, params = null, options = {}) {
-        let url = endpoint;
-        
-        // Agregar parámetros de consulta
-        if (params && Object.keys(params).length > 0) {
-            const searchParams = new URLSearchParams();
-            Object.entries(params).forEach(([key, value]) => {
-                if (value !== null && value !== undefined) {
-                    searchParams.append(key, value);
-                }
-            });
-            url += `?${searchParams.toString()}`;
-        }
-        
-        return this.makeRequest('GET', url, null, options);
-    }
-    
-    async post(endpoint, data = null, options = {}) {
-        return this.makeRequest('POST', endpoint, data, options);
-    }
-    
-    async put(endpoint, data = null, options = {}) {
-        return this.makeRequest('PUT', endpoint, data, options);
-    }
-    
-    async patch(endpoint, data = null, options = {}) {
-        return this.makeRequest('PATCH', endpoint, data, options);
-    }
-    
-    async delete(endpoint, options = {}) {
-        return this.makeRequest('DELETE', endpoint, null, options);
-    }
-    
-    // ====================================
-    // MÉTODOS ESPECÍFICOS DE TANCAT
-    // ====================================
-    
-    // === CLIENTE ===
-    
+
+    /**
+     * Obtener todas las sedes
+     */
     async obtenerSedes() {
-        return this.get('/cliente/sedes');
+        try {
+            const response = await this.request('/cliente/sedes');
+            return response;
+        } catch (error) {
+            console.error('Error obteniendo sedes:', error);
+            throw error;
+        }
     }
-    
+
+    /**
+     * Obtener todos los deportes
+     */
     async obtenerDeportes() {
-        return this.get('/cliente/deportes');
+        try {
+            const response = await this.request('/cliente/deportes');
+            return response;
+        } catch (error) {
+            console.error('Error obteniendo deportes:', error);
+            throw error;
+        }
     }
-    
-    async obtenerCanchas(sedeId = null, deporteId = null) {
-        const params = {};
-        if (sedeId) params.sede_id = sedeId;
-        if (deporteId) params.deporte_id = deporteId;
-        
-        return this.get('/cliente/canchas', params);
-    }
-    
-    async consultarDisponibilidad(sedeId, deporteId, fecha) {
-        return this.post('/cliente/consulta-disponibilidad', {
-            sede_id: sedeId,
-            deporte_id: deporteId,
-            fecha: fecha
-        });
-    }
-    
-    async obtenerTorneosActivos() {
-        return this.get('/cliente/torneos');
-    }
-    
-    async obtenerDetallesTorneo(torneoId) {
-        return this.get(`/cliente/torneos/${torneoId}`);
-    }
-    
+
+    /**
+     * Obtener combinaciones disponibles sede-deporte
+     */
     async obtenerCombinacionesDisponibles() {
-        return this.get('/cliente/combinaciones-disponibles');
+        try {
+            const response = await this.request('/cliente/combinaciones-disponibles');
+            return response;
+        } catch (error) {
+            console.error('Error obteniendo combinaciones:', error);
+            throw error;
+        }
     }
-    
-    async obtenerEstadisticasPublicas() {
-        return this.get('/cliente/estadisticas');
-    }
-    
-    // === AUTENTICACIÓN ===
-    
-    async login(credentials) {
-        return this.post('/auth/login', credentials, { skipAuth: true });
-    }
-    
-    async logout() {
-        return this.post('/auth/logout');
-    }
-    
-    async verificarToken() {
-        return this.get('/auth/verify');
-    }
-    
-    async renovarToken() {
-        return this.post('/auth/refresh');
-    }
-    
-    // === ADMINISTRACIÓN ===
-    
-    async obtenerDashboard() {
-        return this.get('/admin/dashboard');
-    }
-    
-    // --- Reservas ---
-    async obtenerReservas(filtros = {}) {
-        return this.get('/reservas', filtros);
-    }
-    
-    async crearReserva(datosReserva) {
-        return this.post('/reservas', datosReserva);
-    }
-    
-    async actualizarReserva(reservaId, datos) {
-        return this.put(`/reservas/${reservaId}`, datos);
-    }
-    
-    async cancelarReserva(reservaId, motivo = null) {
-        return this.patch(`/reservas/${reservaId}/cancelar`, { motivo });
-    }
-    
-    async obtenerDetallesReserva(reservaId) {
-        return this.get(`/reservas/${reservaId}`);
-    }
-    
-    async obtenerEstadisticasReservas(fechaDesde, fechaHasta) {
-        return this.get('/reservas/estadisticas', {
-            fecha_desde: fechaDesde,
-            fecha_hasta: fechaHasta
-        });
-    }
-    
-    // --- Torneos ---
-    async obtenerTorneos(filtros = {}) {
-        return this.get('/torneos', filtros);
-    }
-    
-    async crearTorneo(datosTorneo) {
-        return this.post('/torneos', datosTorneo);
-    }
-    
-    // --- Inventario ---
-    async obtenerInventario(filtros = {}) {
-        return this.get('/inventario', filtros);
-    }
-    
-    async agregarProducto(datosProducto) {
-        return this.post('/inventario', datosProducto);
-    }
-    
-    // --- Ventas ---
-    async obtenerVentas(filtros = {}) {
-        return this.get('/ventas', filtros);
-    }
-    
-    async registrarVenta(datosVenta) {
-        return this.post('/ventas', datosVenta);
-    }
-    
-    async obtenerProductosParaVenta(filtros = {}) {
-        return this.get('/ventas/productos', filtros);
-    }
-    
-    // --- Reportes ---
-    async obtenerReportesDisponibles() {
-        return this.get('/reportes');
-    }
-    
-    async generarReporteReservas(filtros = {}) {
-        return this.get('/reportes/reservas', filtros);
-    }
-    
-    async generarReporteIngresos(filtros = {}) {
-        return this.get('/reportes/ingresos', filtros);
-    }
-    
-    // ====================================
-    // UTILIDADES DE UPLOAD
-    // ====================================
-    
-    async uploadFile(file, endpoint = '/upload', onProgress = null) {
-        return new Promise((resolve, reject) => {
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            const xhr = new XMLHttpRequest();
-            
-            // Configurar progreso
-            if (onProgress) {
-                xhr.upload.addEventListener('progress', (e) => {
-                    if (e.lengthComputable) {
-                        const percentComplete = (e.loaded / e.total) * 100;
-                        onProgress(percentComplete);
-                    }
-                });
-            }
-            
-            // Configurar respuesta
-            xhr.addEventListener('load', () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        resolve(response);
-                    } catch (error) {
-                        resolve({ success: true, data: xhr.responseText });
-                    }
-                } else {
-                    reject(new Error(`Upload falló: ${xhr.status} ${xhr.statusText}`));
-                }
+
+    /**
+     * Consultar disponibilidad de turnos
+     */
+    async consultarDisponibilidad(sede_id, deporte_id, fecha) {
+        try {
+            const response = await this.request('/cliente/consulta-disponibilidad', {
+                method: 'POST',
+                body: JSON.stringify({
+                    sede_id: parseInt(sede_id),
+                    deporte_id: parseInt(deporte_id),
+                    fecha: fecha
+                })
             });
-            
-            xhr.addEventListener('error', () => {
-                reject(new Error('Error de red durante upload'));
-            });
-            
-            xhr.addEventListener('timeout', () => {
-                reject(new Error('Timeout durante upload'));
-            });
-            
-            // Configurar request
-            const url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
-            xhr.open('POST', url);
-            xhr.timeout = 60000; // 1 minuto para uploads
-            
-            // Agregar autenticación si está disponible
-            if (window.authService) {
-                window.authService.getToken().then(token => {
-                    if (token) {
-                        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-                    }
-                    xhr.send(formData);
-                });
-            } else {
-                xhr.send(formData);
-            }
-        });
+            return response;
+        } catch (error) {
+            console.error('Error consultando disponibilidad:', error);
+            throw error;
+        }
     }
-    
-    // ====================================
-    // UTILIDADES DE MONITOREO
-    // ====================================
-    
-    async monitorearConexion(intervalo = 30000) {
-        setInterval(async () => {
-            await this.testConnection();
-        }, intervalo);
+
+    /**
+     * Obtener torneos activos
+     */
+    async obtenerTorneosActivos() {
+        try {
+            const response = await this.request('/cliente/torneos');
+            return response;
+        } catch (error) {
+            console.error('Error obteniendo torneos:', error);
+            throw error;
+        }
     }
-    
-    getEstadisticasCache() {
+
+    /**
+     * Test de conexión
+     */
+    async testConnection() {
+        try {
+            await this.request('/health');
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    // ====================================
+    // MÉTODOS DE UTILIDAD
+    // ====================================
+
+    /**
+     * Obtener estado de conectividad
+     */
+    getConnectionStatus() {
         return {
-            entradas: this.cache.size,
-            tamaño: JSON.stringify([...this.cache.entries()]).length,
-            antigüedad: this.cache.size > 0 ? 
-                Math.min(...[...this.cache.values()].map(v => Date.now() - v.timestamp)) : 0
+            isOnline: this.isOnline,
+            baseURL: this.baseURL,
+            cacheSize: this.cache.size
         };
     }
-    
-    // ====================================
-    // UTILIDADES DE DESARROLLO
-    // ====================================
-    
-    debug() {
-        console.group('🐛 TANCAT API Client Debug');
-        console.log('Base URL:', this.baseURL);
-        console.log('Estado conexión:', this.getConnectionStatus());
-        console.log('Estadísticas cache:', this.getEstadisticasCache());
-        console.log('Interceptores request:', this.requestInterceptors.length);
-        console.log('Interceptores response:', this.responseInterceptors.length);
-        console.groupEnd();
-    }
-    
-    // ====================================
-    // CONFIGURACIÓN AVANZADA
-    // ====================================
-    
-    configurar(opciones) {
-        if (opciones.baseURL) {
-            this.baseURL = opciones.baseURL;
+
+    /**
+     * Actualizar configuración
+     */
+    updateConfig(config) {
+        if (config.baseURL) {
+            this.baseURL = config.baseURL;
         }
-        
-        if (opciones.timeout) {
-            this.timeout = opciones.timeout;
+        if (config.timeout) {
+            this.timeout = config.timeout;
         }
-        
-        if (opciones.retryAttempts) {
-            this.retryAttempts = opciones.retryAttempts;
+        if (config.retryAttempts) {
+            this.retryAttempts = config.retryAttempts;
         }
-        
-        if (opciones.retryDelay) {
-            this.retryDelay = opciones.retryDelay;
-        }
-        
-        if (opciones.cacheTimeout) {
-            this.cacheTimeout = opciones.cacheTimeout;
-        }
-        
-        console.log('⚙️ API Client reconfigurado:', opciones);
     }
 }
-
-// ====================================
-// INTERCEPTORES PREDEFINIDOS
-// ====================================
-
-// Interceptor para logging de requests
-const loggingRequestInterceptor = (config) => {
-    if (window.APP_CONFIG?.ENVIRONMENT === 'development') {
-        console.log(`📤 ${config.method} ${config.url}`, config.data || '');
-    }
-    return config;
-};
-
-// Interceptor para logging de responses
-const loggingResponseInterceptor = (response, config) => {
-    if (window.APP_CONFIG?.ENVIRONMENT === 'development') {
-        const status = response.success ? '✅' : '❌';
-        console.log(`📥 ${status} ${config.method} ${config.url}`, response);
-    }
-    return response;
-};
-
-// Interceptor para manejo de errores de autenticación
-const authErrorInterceptor = (response, config) => {
-    if (!response.success && response.status === 401 && !config.skipAuth) {
-        console.warn('🔐 Token expirado, redirigiendo al login');
-        if (window.authService) {
-            window.authService.logout();
-        }
-        if (window.router) {
-            window.router.navigateTo('/login');
-        }
-    }
-    return response;
-};
-
-// ====================================
-// INICIALIZACIÓN Y EXPORTACIÓN
-// ====================================
 
 // Crear instancia global
-const apiClient = new TancatApiClient();
+window.apiClient = new ApiClient();
 
-// Agregar interceptores predefinidos
-if (window.APP_CONFIG?.ENVIRONMENT === 'development') {
-    apiClient.addRequestInterceptor(loggingRequestInterceptor);
-    apiClient.addResponseInterceptor(loggingResponseInterceptor);
+// Exportar para módulos
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ApiClient;
 }
-
-apiClient.addResponseInterceptor(authErrorInterceptor);
-
-// Hacer disponible globalmente
-window.apiClient = apiClient;
-
-// Monitorear conexión
-apiClient.monitorearConexion();
-
-// Exportar para uso en módulos
-export default apiClient;
