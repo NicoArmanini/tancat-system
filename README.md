@@ -15,22 +15,7 @@ cd Sistema_Gestion_Complejo_Deportivo
 npm run setup
 ```
 
-### 2. Configurar Base de Datos
-
-```bash
-# Copiar archivo de configuración
-cp backend/.env.example backend/.env
-
-# Editar con tus credenciales de Neon
-nano backend/.env
-```
-
-**Configuración para Neon (recomendado):**
-```env
-DATABASE_URL=postgresql://usuario:password@host:5432/basedatos?sslmode=require
-```
-
-### 3. Iniciar el Sistema
+### 2. Iniciar el Sistema
 
 ```bash
 # Inicia backend y frontend automáticamente
@@ -98,17 +83,6 @@ GET    /api/ventas                          # Gestión de ventas
 - **clientes** - Información de clientes
 - **productos** - Inventario y productos
 - **torneos** - Torneos organizados
-
-### Configuración Neon
-
-1. Crear cuenta en [Neon](https://neon.tech)
-2. Crear nuevo proyecto
-3. Copiar la URL de conexión
-4. Configurar en `backend/.env`:
-
-```env
-DATABASE_URL=postgresql://usuario:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require
-```
 
 ## 🛠️ Comandos Disponibles
 
@@ -208,23 +182,6 @@ curl http://localhost:3000/api/health
 - Errores detallados con stack trace
 - Rate limiting y intentos de conexión
 
-## 🚀 Despliegue
-
-### Producción
-1. Configurar variables de entorno de producción
-2. Configurar `NODE_ENV=production`
-3. Configurar CORS para dominio de producción
-4. Configurar certificados SSL
-5. Usar un process manager (PM2)
-
-### Variables de Entorno de Producción
-```env
-NODE_ENV=production
-DATABASE_URL=postgresql://...
-JWT_SECRET=clave-super-secreta-produccion
-CORS_ORIGIN=https://tudominio.com
-```
-
 ## 🤝 Contribución
 
 1. Fork del proyecto
@@ -236,62 +193,6 @@ CORS_ORIGIN=https://tudominio.com
 ## 📝 Licencia
 
 Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
-
-## 🆘 Troubleshooting
-
-### Problemas Comunes
-
-**Backend no inicia:**
-```bash
-# Verificar configuración
-cd backend && cat .env
-
-# Verificar dependencias
-npm install
-
-# Verificar conexión DB
-npm run check
-```
-
-**Frontend no conecta al backend:**
-```bash
-# Verificar que backend esté corriendo en puerto 3000
-curl http://localhost:3000/api/health
-
-# Verificar logs de consola en navegador
-# Verificar CORS en backend/.env
-```
-
-**Error de base de datos:**
-```bash
-# Verificar URL de Neon
-# Verificar que la base de datos existe
-# Ejecutar migraciones: npm run db:setup
-```
-
-**Puerto en uso:**
-```bash
-# Backend (puerto 3000)
-lsof -ti:3000 | xargs kill -9
-
-# Frontend (puerto 5173)  
-lsof -ti:5173 | xargs kill -9
-```
-
-### Logs de Debug
-
-**Habilitar logs SQL:**
-```env
-# En backend/.env
-LOG_SQL_QUERIES=true
-LOG_LEVEL=debug
-```
-
-**Ver conexiones de DB:**
-```javascript
-// En consola del navegador
-TANCAT_DEBUG.getConnectionStatus()
-```
 
 ## 📞 Soporte
 
@@ -321,7 +222,7 @@ TANCAT_DEBUG.getConnectionStatus()
 
 ## 👨‍💻 Desarrollado por
 
-**TANCAT Development Team**
+**Nicolas Armanini - Tomas Lacamoire - Dario Rodriguez**
 - Sistema diseñado para Complejo Deportivo TANCAT
 - Córdoba, Argentina
 - Desde 1991 al servicio del deporte
