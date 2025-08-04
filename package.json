@@ -1,42 +1,48 @@
 {
   "name": "tancat-system",
   "version": "1.0.0",
-  "description": "Sistema de Administración Complejo Deportivo TANCAT",
-  "main": "index.js",
-  "type": "module",
+  "description": "Sistema de Administración Complejo Deportivo TANCAT - Backend y Frontend integrados",
+  "main": "start-tancat.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"backend,frontend\" --prefix-colors \"blue,green\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "start": "npm run dev",
-    "start:backend": "cd backend && npm start",
-    "start:frontend": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build",
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "clean": "rm -rf backend/node_modules frontend/node_modules node_modules backend/package-lock.json frontend/package-lock.json package-lock.json",
-    "setup": "npm run clean && npm run install:all",
+    "start": "node start-tancat.js",
+    "dev": "node start-tancat.js",
+    "open": "node open-frontend.js",
+    "open-frontend": "node open-frontend.js",
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm run dev", 
+    "backend:start": "cd backend && npm start",
+    "frontend:start": "cd frontend && npm start",
+    "install:all": "npm install && cd backend && npm install && echo '✅ Dependencias instaladas'",
+    "build": "echo 'Building TANCAT System...' && cd backend && echo 'Backend ready for production'",
+    "clean": "rm -rf backend/node_modules frontend/node_modules node_modules",
+    "clean:env": "rm -f backend/.env",
+    "setup": "npm run install:all && echo '✅ Proyecto configurado. Ahora:' && echo '1. Edita backend/.env con tu DATABASE_URL' && echo '2. Ejecuta: npm start' && echo '3. Si no abre: npm run open'",
     "test": "cd backend && npm test",
+    "test:frontend": "echo 'Frontend tests not configured yet'",
     "lint": "cd backend && npm run lint",
-    "health": "curl -f http://localhost:3000/api/health || echo 'Backend no disponible'",
-    "help": "echo \"📋 Comandos principales:\" && echo \"npm run dev          - Inicia todo el sistema\" && echo \"npm run dev:backend  - Solo backend\" && echo \"npm run dev:frontend - Solo frontend\" && echo \"npm run setup        - Configuración inicial\""
-  },
-  "dependencies": {
-    "concurrently": "^8.2.2"
-  },
-  "devDependencies": {
-    "cross-env": "^7.0.3"
+    "db:migrate": "cd backend && npm run migrate",
+    "db:seed": "cd backend && npm run seed", 
+    "db:setup": "cd backend && npm run db:setup",
+    "logs": "echo 'Los logs aparecen en consola al ejecutar npm start'",
+    "check": "node -e \"console.log('✅ Node.js:', process.version); console.log('✅ NPM:', require('child_process').execSync('npm -v').toString().trim()); console.log('✅ Ubicación:', process.cwd());\"",
+    "check:files": "node -e \"const fs = require('fs'); const files = ['backend/server.js', 'frontend/index.html', 'start-tancat.js']; files.forEach(f => console.log(f + ':', fs.existsSync(f) ? '✅' : '❌'));\"",
+    "check:ports": "node -e \"const net = require('net'); [3000, 5173].forEach(port => { const server = net.createServer(); server.listen(port, () => { console.log('Puerto', port, '✅ disponible'); server.close(); }).on('error', () => console.log('Puerto', port, '❌ ocupado')); });\"",
+    "help": "echo '📋 COMANDOS TANCAT:' && echo '' && echo 'npm start          - Inicia sistema completo' && echo 'npm run open       - Abre frontend manualmente' && echo 'npm run backend    - Solo backend (puerto 3000)' && echo 'npm run frontend   - Solo frontend (puerto 5173)' && echo 'npm run setup      - Instala dependencias' && echo 'npm run check:ports - Verifica puertos' && echo 'npm run help       - Esta ayuda'"
   },
   "keywords": [
     "tancat",
     "sistema",
-    "administracion",
+    "administracion", 
     "complejo-deportivo",
     "padel",
     "reservas",
     "nodejs",
+    "express",
+    "postgresql",
+    "neon",
     "javascript",
-    "supabase",
-    "postgresql"
+    "frontend",
+    "backend"
   ],
   "author": "TANCAT Development Team",
   "license": "MIT",
@@ -46,10 +52,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tu-usuario/tancat-system.git"
+    "url": "git+https://github.com/NicoArmanini/Sistema_Gestion_Complejo_Deportivo.git"
   },
   "bugs": {
-    "url": "https://github.com/tu-usuario/tancat-system/issues"
+    "url": "https://github.com/NicoArmanini/Sistema_Gestion_Complejo_Deportivo/issues"
   },
-  "homepage": "https://github.com/tu-usuario/tancat-system#readme"
+  "homepage": "https://github.com/NicoArmanini/Sistema_Gestion_Complejo_Deportivo#readme",
+  "devDependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "dependencies": {},
+  "workspaces": [
+    "backend",
+    "frontend"
+  ]
 }

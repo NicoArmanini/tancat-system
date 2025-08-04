@@ -3,210 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TANCAT - Sistema de Administración</title>
-    
-    <!-- Meta tags para SEO -->
-    <meta name="description" content="Sistema de administración para Complejo Deportivo TANCAT">
-    <meta name="keywords" content="TANCAT, pádel, reservas, complejo deportivo, Córdoba">
-    <meta name="author" content="TANCAT Development Team">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    
-    <!-- CSS Principales -->
-    <link href="assets/css/styles.css" rel="stylesheet">
+    <title>TANCAT - Complejo Deportivo</title>
     <link href="assets/css/cliente-main.css" rel="stylesheet">
-    <link href="assets/css/dashboard.css" rel="stylesheet">
-    <link href="assets/css/mainAdmin.css" rel="stylesheet">
-    
-    <!-- Configuración de la aplicación -->
-    <script>
-        window.APP_CONFIG = {
-            API_BASE_URL: 'http://localhost:3000/api',
-            ENVIRONMENT: 'development',
-            VERSION: '1.0.0',
-            SEDES: {
-                JACINTO_RIOS: {
-                    id: 1,
-                    nombre: 'Jacinto Ríos',
-                    direccion: 'Jacinto Ríos 232, Córdoba'
-                },
-                RINCON: {
-                    id: 2,
-                    nombre: 'Rincón',
-                    direccion: 'Rincón 985, Córdoba'
-                }
-            },
-            DEPORTES: {
-                PADEL: { id: 1, nombre: 'Pádel' },
-                BASQUET: { id: 2, nombre: 'Básquet' },
-                PING_PONG: { id: 3, nombre: 'Ping Pong' },
-                SQUASH: { id: 4, nombre: 'Squash' },
-                VOLEY: { id: 5, nombre: 'Vóley' }
-            }
-        };
-    </script>
+    <meta name="description" content="TANCAT - Complejo deportivo líder en Córdoba. Reserva canchas de pádel, básquet, ping pong y más.">
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 </head>
 <body>
-    <!-- Contenedor principal de la SPA -->
-    <div id="app">
-        <!-- Indicador de carga inicial -->
-        <div id="loading-screen" class="loading-screen">
-            <div class="loading-content">
-                <div class="logo-loading">TANCAT</div>
-                <div class="loading-spinner"></div>
-                <div class="loading-text">Cargando sistema...</div>
+    <!-- Header con navegación -->
+    <header class="main-header">
+        <div class="container">
+            <div class="logo-section">
+                <div class="logo">TANCAT</div>
+                <div class="tagline">Complejo Deportivo</div>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="#inicio" class="nav-link active">Inicio</a></li>
+                    <li><a href="#sedes" class="nav-link">Sedes</a></li>
+                    <li><a href="#deportes" class="nav-link">Deportes</a></li>
+                    <li><a href="#reservas" class="nav-link">Reservar</a></li>
+                    <li><a href="#torneos" class="nav-link">Torneos</a></li>
+                    <li><a href="#contacto" class="nav-link">Contacto</a></li>
+                    <li><a href="pages/login.html" class="nav-link login-btn">Administración</a></li>
+                </ul>
+            </nav>
+            <div class="mobile-menu-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
             </div>
         </div>
-        
-        <!-- Contenido principal se carga aquí dinámicamente -->
-        <div id="main-content" style="display: none;">
-            <!-- Las vistas se cargan aquí mediante JavaScript -->
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section" id="inicio">
+        <div class="hero-content">
+            <h1>Bienvenidos a TANCAT</h1>
+            <p>El complejo deportivo líder en Córdoba desde 1991</p>
+            <div class="hero-buttons">
+                <a href="#reservas" class="btn btn-primary">Reservar Cancha</a>
+                <a href="#sedes" class="btn btn-secondary">Nuestras Sedes</a>
+            </div>
         </div>
-    </div>
-    
-    <!-- Scripts de la aplicación -->
-    <script type="module" src="assets/js/config.js"></script>
-    <script type="module" src="assets/js/utils.js"></script>
-    <script type="module" src="assets/js/apiClient.js"></script>
-    <script type="module" src="assets/js/auth.js"></script>
-    <script type="module" src="assets/js/router.js"></script>
-    <script type="module" src="assets/js/app.js"></script>
-    
-    <!-- Estilos para la pantalla de carga -->
-    <style>
-        .loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #95a5a6 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-        
-        .loading-content {
-            text-align: center;
-            color: white;
-        }
-        
-        .logo-loading {
-            font-size: 48px;
-            font-weight: bold;
-            color: #e74c3c;
-            margin-bottom: 30px;
-            letter-spacing: 3px;
-            animation: pulse 2s infinite;
-        }
-        
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #e74c3c;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        
-        .loading-text {
-            font-size: 16px;
-            color: rgba(255, 255, 255, 0.8);
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        
-        /* Error de carga */
-        .error-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #2c3e50;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-align: center;
-            z-index: 9999;
-        }
-        
-        .error-content h2 {
-            color: #e74c3c;
-            margin-bottom: 20px;
-        }
-        
-        .error-content p {
-            margin-bottom: 20px;
-            opacity: 0.8;
-        }
-        
-        .btn-retry {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        .btn-retry:hover {
-            background: #c0392b;
-        }
-    </style>
-    
-    <!-- Manejo de errores de JavaScript -->
-    <script>
-        // Manejo global de errores
-        window.addEventListener('error', function(e) {
-            console.error('Error global capturado:', e.error);
-        });
-        
-        window.addEventListener('unhandledrejection', function(e) {
-            console.error('Promise rechazada no manejada:', e.reason);
-        });
-        
-        // Función para mostrar error de carga
-        window.showLoadingError = function(message) {
-            const loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen) {
-                loadingScreen.innerHTML = `
-                    <div class="error-content">
-                        <h2>⚠️ Error de Carga</h2>
-                        <p>${message || 'No se pudo cargar la aplicación correctamente.'}</p>
-                        <p>Verifica tu conexión a internet y que el servidor esté ejecutándose.</p>
-                        <button class="btn-retry" onclick="window.location.reload()">
-                            🔄 Reintentar
+        <div class="hero-overlay"></div>
+    </section>
+
+    <!-- Información de Sedes -->
+    <section class="sedes-section" id="sedes">
+        <div class="container">
+            <h2 class="section-title">Nuestras Sedes</h2>
+            <div class="sedes-grid" id="sedesContainer">
+                <!-- Se cargará dinámicamente desde el backend -->
+                <div class="loading-placeholder">
+                    <p>Cargando información de sedes...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Deportes Disponibles -->
+    <section class="deportes-section" id="deportes">
+        <div class="container">
+            <h2 class="section-title">Deportes Disponibles</h2>
+            <div class="deportes-grid" id="deportesContainer">
+                <!-- Se cargará dinámicamente desde el backend -->
+                <div class="loading-placeholder">
+                    <p>Cargando deportes disponibles...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Servicios Adicionales -->
+    <section class="servicios-section" id="servicios">
+        <div class="container">
+            <h2 class="section-title">Servicios Adicionales</h2>
+            <div class="servicios-grid">
+                <div class="servicio-item">
+                    <div class="servicio-icon">🛍️</div>
+                    <h4>Tienda Deportiva</h4>
+                    <p>Paletas, pelotas, indumentaria y accesorios deportivos.</p>
+                </div>
+                <div class="servicio-item">
+                    <div class="servicio-icon">🥤</div>
+                    <h4>Bebidas</h4>
+                    <p>Variedad de bebidas refrescantes y deportivas.</p>
+                </div>
+                <div class="servicio-item">
+                    <div class="servicio-icon">🎮</div>
+                    <h4>Entretenimiento</h4>
+                    <p>Máquinas arcade y metegol para toda la familia.</p>
+                </div>
+                <div class="servicio-item">
+                    <div class="servicio-icon">🍖</div>
+                    <h4>Eventos</h4>
+                    <p>Parrilla y salón para cumpleaños y reuniones.</p>
+                </div>
+                <div class="servicio-item">
+                    <div class="servicio-icon">🏆</div>
+                    <h4>Torneos</h4>
+                    <p>Organizamos torneos regulares de pádel.</p>
+                </div>
+                <div class="servicio-item">
+                    <div class="servicio-icon">👨‍🏫</div>
+                    <h4>Clases</h4>
+                    <p>Clases de pádel con instructores profesionales.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de Reservas -->
+    <section class="reservas-section" id="reservas">
+        <div class="container">
+            <div class="reservas-content">
+                <div class="reservas-text">
+                    <h2>¿Listo para jugar?</h2>
+                    <p>Consulta la disponibilidad en tiempo real desde nuestro sistema. Información actualizada al instante.</p>
+                    <ul class="reservas-features">
+                        <li>✅ Consulta disponibilidad en tiempo real</li>
+                        <li>✅ Información actualizada desde nuestro sistema</li>
+                        <li>✅ Reservas presenciales en Sede Principal</li>
+                        <li>✅ También por WhatsApp</li>
+                        <li>✅ Pago total o con seña</li>
+                    </ul>
+                </div>
+                <div class="reservas-form">
+                    <h3>Consulta Disponibilidad</h3>
+                    <form id="consultaForm">
+                        <div class="form-group">
+                            <label for="sede">Sede</label>
+                            <select id="sede" name="sede" required>
+                                <option value="">Cargando sedes...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="deporte">Deporte</label>
+                            <select id="deporte" name="deporte" required>
+                                <option value="">Selecciona una sede primero</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="fecha">Fecha</label>
+                            <input type="date" id="fecha" name="fecha" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary full-width">
+                            Ver Disponibilidad
                         </button>
-                    </div>
-                `;
-                loadingScreen.className = 'error-screen';
-            }
-        };
-        
-        // Timeout de carga (10 segundos)
-        setTimeout(() => {
-            const loadingScreen = document.getElementById('loading-screen');
-            const mainContent = document.getElementById('main-content');
-            
-            if (loadingScreen && loadingScreen.style.display !== 'none' && 
-                mainContent && mainContent.style.display === 'none') {
-                window.showLoadingError('La aplicación está tardando demasiado en cargar.');
-            }
-        }, 10000);
-    </script>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de Torneos -->
+    <section class="torneos-section" id="torneos">
+        <div class="container">
+            <h2 class="section-title">Torneos Activos</h2>
+            <div class="torneos-grid" id="torneosContainer">
+                <!-- Se cargará dinámicamente desde el backend -->
+                <div class="loading-placeholder">
+                    <p>Cargando torneos activos...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="main-footer" id="contacto">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>TANCAT</h4>
+                    <p>Complejo deportivo con más de 30 años de experiencia en Córdoba.</p>
+                    <p><strong>Sistema conectado:</strong> Información en tiempo real.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Sedes</h4>
+                    <p><strong>Jacinto Ríos:</strong> Jacinto Ríos 232</p>
+                    <p><strong>Rincón:</strong> Rincón 985</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Horarios</h4>
+                    <p><strong>Lun-Sáb:</strong> Consultar por sede</p>
+                    <p><strong>Domingo:</strong> 17:00-23:00</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Contacto</h4>
+                    <p>Reservas presenciales</p>
+                    <p>WhatsApp disponible</p>
+                    <p><strong>Sistema:</strong> Datos en tiempo real</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 TANCAT - Complejo Deportivo. Todos los derechos reservados.</p>
+                <p>Sistema de reservas en tiempo real</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts en orden correcto -->
+    <script src="assets/js/apiClient.js"></script>
+    <script src="assets/js/cliente-main.js"></script>
 </body>
 </html>
