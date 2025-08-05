@@ -6,325 +6,15 @@
 
 const express = require('express');
 const router = express.Router();
-const { injectDbClient } = require('../config/database');
+const { injectDbClient } = require('../utils/database'); // RUTA CORREGIDA
 
 // Aplicar middleware de base de datos
 router.use(injectDbClient);
 
-// ====================================
-// RUTAS DE RESERVAS
-// ====================================
-
 /**
  * @swagger
- * /api/reservas/{id}:
- *   put:
- *     summary: Actualizar una reserva
- *     tags: [Reservas]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               estado:
- *                 type: string
- *                 enum: [confirmada, cancelada, finalizada, no_show]
- *               seña_pagada:
- *                 type: number
- *               observaciones:
- *                 type: string
- *     responses:
- *       200:
- *         description: Reserva actualizada exitosamente
- *       404:
- *         description: Reserva no encontrada
- */
-router.put('/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { estado, seña_pagada, observaciones } = req.body;
-        
-        // Verificar que la reserva existe
-        const existeQuery = `SELECT id_reserva FROM reservas WHERE id_reserva = $1`;
-        const existe = await req.db.query(existeQuery, [id]);
-        
-        if (existe.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Reserva no encontrada',
-                timestamp: new Date().toISOString()
-            });
-        }
-        
-        // Construir query de actualización dinámicamente
-        const campos = [];
-        const valores = [];
-        let paramCount = 1;
-        
-        if (estado !== undefined) {
-            campos.push(`estado = ${paramCount}`);
-            valores.push(estado);
-            paramCount++;
-        }
-        
-        if (seña_pagada !== undefined) {
-            campos.push(`seña_pagada = ${paramCount}`);
-            valores.push(seña_pagada);
-            paramCount++;
-        }
-        
-        if (observaciones !== undefined) {
-            campos.push(`observaciones = ${paramCount}`);
-            valores.push(observaciones);
-            paramCount++;
-        }
-        
-        if (campos.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'No se proporcionaron campos para actualizar',
-                timestamp: new Date().toISOString()
-            });
-        }
-        
-        // Agregar fecha de modificación y ID
-        campos.push(`fecha_modificacion = CURRENT_TIMESTAMP`);
-        valores.push(id);
-        
-        const updateQuery = `
-            UPDATE reservas 
-            SET ${campos.join(', ')}
-            WHERE id_reserva = ${paramCount}
-            RETURNING *
-        `;
-        
-        const result = await req.db.query(updateQuery, valores);
-        const reservaActualizada = result.rows[0];
-        
-        res.json({
-            success: true,
-            data: {
-                id: reservaActualizada.id_reserva,
-                estado: reservaActualizada.estado,
-                precioTotal: parseFloat(reservaActualizada.precio_total),
-                señaPagada: parseFloat(reservaActualizada.seña_pagada),
-                saldoPendiente: parseFloat(reservaActualizada.saldo_pendiente),
-                observaciones: reservaActualizada.observaciones,
-                fechaModificacion: reservaActualizada.fecha_modificacion
-            },
-            message: 'Reserva actualizada correctamente',
-            timestamp: new Date().toISOString()
-        });
-        
-    } catch (error) {
-        console.error('Error al actualizar reserva:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno del servidor',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
-/**
- * @swagger
- * /api/reservas/{id}/cancelar:
- *   patch:
- *     summary: Cancelar una reserva
- *     tags: [Reservas]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               motivo:
- *                 type: string
- *     responses:
- *       200:
- *         description: Reserva cancelada exitosamente
- */
-router.patch('/:id/cancelar', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { motivo = 'Cancelación solicitada' } = req.body;
-        
-        const updateQuery = `
-            UPDATE reservas 
-            SET estado = 'cancelada',
-                observaciones = COALESCE(observaciones, '') || ' - CANCELADA: ' || $2,
-                fecha_modificacion = CURRENT_TIMESTAMP
-            WHERE id_reserva = $1 AND estado != 'cancelada'
-            RETURNING *
-        `;
-        
-        const result = await req.db.query(updateQuery, [id, motivo]);
-        
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Reserva no encontrada o ya cancelada',
-                timestamp: new Date().toISOString()
-            });
-        }
-        
-        res.json({
-            success: true,
-            data: {
-                id: result.rows[0].id_reserva,
-                estado: result.rows[0].estado,
-                observaciones: result.rows[0].observaciones
-            },
-            message: 'Reserva cancelada correctamente',
-            timestamp: new Date().toISOString()
-        });
-        
-    } catch (error) {
-        console.error('Error al cancelar reserva:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno del servidor',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
-/**
- * @swagger
- * /api/reservas/estadisticas:
+ * /api/reservas:
  *   get:
- *     summary: Obtener estadísticas de reservas
- *     tags: [Reservas]
- *     parameters:
- *       - in: query
- *         name: fecha_desde
- *         schema:
- *           type: string
- *           format: date
- *       - in: query
- *         name: fecha_hasta
- *         schema:
- *           type: string
- *           format: date
- *     responses:
- *       200:
- *         description: Estadísticas obtenidas exitosamente
- */
-router.get('/estadisticas', async (req, res) => {
-    try {
-        const { fecha_desde = new Date().toISOString().split('T')[0], fecha_hasta = new Date().toISOString().split('T')[0] } = req.query;
-        
-        const estadisticasQuery = `
-            SELECT 
-                COUNT(*) as total_reservas,
-                COUNT(CASE WHEN estado = 'confirmada' THEN 1 END) as confirmadas,
-                COUNT(CASE WHEN estado = 'cancelada' THEN 1 END) as canceladas,
-                COUNT(CASE WHEN estado = 'finalizada' THEN 1 END) as finalizadas,
-                COUNT(CASE WHEN estado = 'no_show' THEN 1 END) as no_show,
-                SUM(precio_total) as ingresos_totales,
-                SUM(seña_pagada) as señas_cobradas,
-                AVG(precio_total) as precio_promedio
-            FROM reservas
-            WHERE fecha_reserva BETWEEN $1 AND $2
-        `;
-        
-        const reservasPorDeporteQuery = `
-            SELECT 
-                d.nombre as deporte,
-                COUNT(r.id_reserva) as cantidad,
-                SUM(r.precio_total) as ingresos
-            FROM reservas r
-            INNER JOIN turnos t ON r.id_turno = t.id_turno
-            INNER JOIN canchas c ON t.id_cancha = c.id_cancha
-            INNER JOIN deportes d ON c.id_deporte = d.id_deporte
-            WHERE r.fecha_reserva BETWEEN $1 AND $2
-            GROUP BY d.id_deporte, d.nombre
-            ORDER BY cantidad DESC
-        `;
-        
-        const reservasPorSedeQuery = `
-            SELECT 
-                s.nombre as sede,
-                COUNT(r.id_reserva) as cantidad,
-                SUM(r.precio_total) as ingresos
-            FROM reservas r
-            INNER JOIN turnos t ON r.id_turno = t.id_turno
-            INNER JOIN canchas c ON t.id_cancha = c.id_cancha
-            INNER JOIN sedes s ON c.id_sede = s.id_sede
-            WHERE r.fecha_reserva BETWEEN $1 AND $2
-            GROUP BY s.id_sede, s.nombre
-            ORDER BY cantidad DESC
-        `;
-        
-        const [estadisticas, porDeporte, porSede] = await Promise.all([
-            req.db.query(estadisticasQuery, [fecha_desde, fecha_hasta]),
-            req.db.query(reservasPorDeporteQuery, [fecha_desde, fecha_hasta]),
-            req.db.query(reservasPorSedeQuery, [fecha_desde, fecha_hasta])
-        ]);
-        
-        const stats = estadisticas.rows[0];
-        
-        res.json({
-            success: true,
-            data: {
-                periodo: {
-                    desde: fecha_desde,
-                    hasta: fecha_hasta
-                },
-                resumen: {
-                    totalReservas: parseInt(stats.total_reservas),
-                    confirmadas: parseInt(stats.confirmadas),
-                    canceladas: parseInt(stats.canceladas),
-                    finalizadas: parseInt(stats.finalizadas),
-                    noShow: parseInt(stats.no_show),
-                    ingresosTotales: parseFloat(stats.ingresos_totales || 0),
-                    señasCobradas: parseFloat(stats.señas_cobradas || 0),
-                    precioPromedio: parseFloat(stats.precio_promedio || 0)
-                },
-                porDeporte: porDeporte.rows.map(row => ({
-                    deporte: row.deporte,
-                    cantidad: parseInt(row.cantidad),
-                    ingresos: parseFloat(row.ingresos || 0)
-                })),
-                porSede: porSede.rows.map(row => ({
-                    sede: row.sede,
-                    cantidad: parseInt(row.cantidad),
-                    ingresos: parseFloat(row.ingresos || 0)
-                }))
-            },
-            message: 'Estadísticas de reservas obtenidas correctamente',
-            timestamp: new Date().toISOString()
-        });
-        
-    } catch (error) {
-        console.error('Error al obtener estadísticas de reservas:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno del servidor',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
-module.exports = router;api/reservas;
- /*   get:
  *     summary: Obtener lista de reservas
  *     tags: [Reservas]
  *     parameters:
@@ -743,4 +433,310 @@ router.get('/:id', async (req, res) => {
 
 /**
  * @swagger
+ * /api/reservas/{id}:
+ *   put:
+ *     summary: Actualizar una reserva
+ *     tags: [Reservas]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               estado:
+ *                 type: string
+ *                 enum: [confirmada, cancelada, finalizada, no_show]
+ *               seña_pagada:
+ *                 type: number
+ *               observaciones:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reserva actualizada exitosamente
+ *       404:
+ *         description: Reserva no encontrada
  */
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { estado, seña_pagada, observaciones } = req.body;
+        
+        // Verificar que la reserva existe
+        const existeQuery = `SELECT id_reserva FROM reservas WHERE id_reserva = $1`;
+        const existe = await req.db.query(existeQuery, [id]);
+        
+        if (existe.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Reserva no encontrada',
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        // Construir query de actualización dinámicamente
+        const campos = [];
+        const valores = [];
+        let paramCount = 1;
+        
+        if (estado !== undefined) {
+            campos.push(`estado = $${paramCount}`);
+            valores.push(estado);
+            paramCount++;
+        }
+        
+        if (seña_pagada !== undefined) {
+            campos.push(`seña_pagada = $${paramCount}`);
+            valores.push(seña_pagada);
+            paramCount++;
+        }
+        
+        if (observaciones !== undefined) {
+            campos.push(`observaciones = $${paramCount}`);
+            valores.push(observaciones);
+            paramCount++;
+        }
+        
+        if (campos.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No se proporcionaron campos para actualizar',
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        // Agregar fecha de modificación y ID
+        campos.push(`fecha_modificacion = CURRENT_TIMESTAMP`);
+        valores.push(id);
+        
+        const updateQuery = `
+            UPDATE reservas 
+            SET ${campos.join(', ')}
+            WHERE id_reserva = $${paramCount}
+            RETURNING *
+        `;
+        
+        const result = await req.db.query(updateQuery, valores);
+        const reservaActualizada = result.rows[0];
+        
+        res.json({
+            success: true,
+            data: {
+                id: reservaActualizada.id_reserva,
+                estado: reservaActualizada.estado,
+                precioTotal: parseFloat(reservaActualizada.precio_total),
+                señaPagada: parseFloat(reservaActualizada.seña_pagada),
+                saldoPendiente: parseFloat(reservaActualizada.saldo_pendiente),
+                observaciones: reservaActualizada.observaciones,
+                fechaModificacion: reservaActualizada.fecha_modificacion
+            },
+            message: 'Reserva actualizada correctamente',
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('Error al actualizar reserva:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+/**
+ * @swagger
+ * /api/reservas/{id}/cancelar:
+ *   patch:
+ *     summary: Cancelar una reserva
+ *     tags: [Reservas]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               motivo:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reserva cancelada exitosamente
+ */
+router.patch('/:id/cancelar', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { motivo = 'Cancelación solicitada' } = req.body;
+        
+        const updateQuery = `
+            UPDATE reservas 
+            SET estado = 'cancelada',
+                observaciones = COALESCE(observaciones, '') || ' - CANCELADA: ' || $2,
+                fecha_modificacion = CURRENT_TIMESTAMP
+            WHERE id_reserva = $1 AND estado != 'cancelada'
+            RETURNING *
+        `;
+        
+        const result = await req.db.query(updateQuery, [id, motivo]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Reserva no encontrada o ya cancelada',
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        res.json({
+            success: true,
+            data: {
+                id: result.rows[0].id_reserva,
+                estado: result.rows[0].estado,
+                observaciones: result.rows[0].observaciones
+            },
+            message: 'Reserva cancelada correctamente',
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('Error al cancelar reserva:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+/**
+ * @swagger
+ * /api/reservas/estadisticas:
+ *   get:
+ *     summary: Obtener estadísticas de reservas
+ *     tags: [Reservas]
+ *     parameters:
+ *       - in: query
+ *         name: fecha_desde
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: fecha_hasta
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Estadísticas obtenidas exitosamente
+ */
+router.get('/estadisticas', async (req, res) => {
+    try {
+        const { fecha_desde = new Date().toISOString().split('T')[0], fecha_hasta = new Date().toISOString().split('T')[0] } = req.query;
+        
+        const estadisticasQuery = `
+            SELECT 
+                COUNT(*) as total_reservas,
+                COUNT(CASE WHEN estado = 'confirmada' THEN 1 END) as confirmadas,
+                COUNT(CASE WHEN estado = 'cancelada' THEN 1 END) as canceladas,
+                COUNT(CASE WHEN estado = 'finalizada' THEN 1 END) as finalizadas,
+                COUNT(CASE WHEN estado = 'no_show' THEN 1 END) as no_show,
+                SUM(precio_total) as ingresos_totales,
+                SUM(seña_pagada) as señas_cobradas,
+                AVG(precio_total) as precio_promedio
+            FROM reservas
+            WHERE fecha_reserva BETWEEN $1 AND $2
+        `;
+        
+        const reservasPorDeporteQuery = `
+            SELECT 
+                d.nombre as deporte,
+                COUNT(r.id_reserva) as cantidad,
+                SUM(r.precio_total) as ingresos
+            FROM reservas r
+            INNER JOIN turnos t ON r.id_turno = t.id_turno
+            INNER JOIN canchas c ON t.id_cancha = c.id_cancha
+            INNER JOIN deportes d ON c.id_deporte = d.id_deporte
+            WHERE r.fecha_reserva BETWEEN $1 AND $2
+            GROUP BY d.id_deporte, d.nombre
+            ORDER BY cantidad DESC
+        `;
+        
+        const reservasPorSedeQuery = `
+            SELECT 
+                s.nombre as sede,
+                COUNT(r.id_reserva) as cantidad,
+                SUM(r.precio_total) as ingresos
+            FROM reservas r
+            INNER JOIN turnos t ON r.id_turno = t.id_turno
+            INNER JOIN canchas c ON t.id_cancha = c.id_cancha
+            INNER JOIN sedes s ON c.id_sede = s.id_sede
+            WHERE r.fecha_reserva BETWEEN $1 AND $2
+            GROUP BY s.id_sede, s.nombre
+            ORDER BY cantidad DESC
+        `;
+        
+        const [estadisticas, porDeporte, porSede] = await Promise.all([
+            req.db.query(estadisticasQuery, [fecha_desde, fecha_hasta]),
+            req.db.query(reservasPorDeporteQuery, [fecha_desde, fecha_hasta]),
+            req.db.query(reservasPorSedeQuery, [fecha_desde, fecha_hasta])
+        ]);
+        
+        const stats = estadisticas.rows[0];
+        
+        res.json({
+            success: true,
+            data: {
+                periodo: {
+                    desde: fecha_desde,
+                    hasta: fecha_hasta
+                },
+                resumen: {
+                    totalReservas: parseInt(stats.total_reservas),
+                    confirmadas: parseInt(stats.confirmadas),
+                    canceladas: parseInt(stats.canceladas),
+                    finalizadas: parseInt(stats.finalizadas),
+                    noShow: parseInt(stats.no_show),
+                    ingresosTotales: parseFloat(stats.ingresos_totales || 0),
+                    señasCobradas: parseFloat(stats.señas_cobradas || 0),
+                    precioPromedio: parseFloat(stats.precio_promedio || 0)
+                },
+                porDeporte: porDeporte.rows.map(row => ({
+                    deporte: row.deporte,
+                    cantidad: parseInt(row.cantidad),
+                    ingresos: parseFloat(row.ingresos || 0)
+                })),
+                porSede: porSede.rows.map(row => ({
+                    sede: row.sede,
+                    cantidad: parseInt(row.cantidad),
+                    ingresos: parseFloat(row.ingresos || 0)
+                }))
+            },
+            message: 'Estadísticas de reservas obtenidas correctamente',
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('Error al obtener estadísticas de reservas:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+module.exports = router;
