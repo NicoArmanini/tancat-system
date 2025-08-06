@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TANCAT - Torneos</title>
+    <link href="../assets/css/mainAdmin.css" rel="stylesheet">
+    <link href="../assets/css/dashboard.css" rel="stylesheet">
+    <style>
+        .bracket {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 3rem;
+            margin-top: 2rem;
+            position: relative;
+        }
+        .round {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            gap: 2rem;
+            position: relative;
+        }
+        .match {
+            background: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 150px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+        }
+        .match.winner {
+            background: #d4edda;
+            font-weight: bold;
+            border: 1px solid #28a745;
+        }
+        .connector {
+            position: absolute;
+            width: 50px;
+            border-top: 2px solid #ccc;
+            border-right: 2px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="./assets/images/tancat-logo.png" alt="TANCAT" class="header-logo" onerror="this.style.display='none'">
+                <h1>TANCAT</h1>
+                <span class="system-subtitle">Sistema de Administración</span>
+            </div>
+            <div class="user-section">
+                <div class="user-info">
+                    <span class="user-name">Usuario</span>
+                    <span class="user-role">Administrador</span>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()">🚪 Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="main-navigation">
+        <div class="nav-content">
+            <button class="nav-item" onclick="navigateTo('/main')">🏠 Dashboard</button>
+            <button class="nav-item" onclick="navigateTo('/reservas')">📅 Reservas</button>
+            <button class="nav-item" onclick="navigateTo('/clientes')">👥 Clientes</button>
+            <button class="nav-item" onclick="navigateTo('/ventas')">💰 Ventas</button>
+            <button class="nav-item active" onclick="navigateTo('/torneos')">🏆 Torneos</button>
+            <button class="nav-item" onclick="navigateTo('/inventario')">📦 Inventario</button>
+            <button class="nav-item" onclick="navigateTo('/reportes')">📊 Reportes</button>
+        </div>
+    </nav>
+
+    <main class="dashboard-main">
+        <section class="nuevo-torneo">
+            <h3>➕ Nuevo Torneo</h3>
+            <form id="torneoForm">
+                <div class="form-grid">
+                    <input type="text" id="nombreTorneo" placeholder="Nombre del Torneo" required>
+                    <input type="date" id="fechaTorneo" required>
+                    <select id="categoriaTorneo" required>
+                        <option value="">Categoría</option>
+                        <option value="A">Categoría A</option>
+                        <option value="B">Categoría B</option>
+                        <option value="C">Categoría C</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Crear Torneo</button>
+            </form>
+        </section>
+
+        <section class="torneos-list">
+            <h3>🏆 Torneos Activos</h3>
+            <table class="torneos-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Fecha</th>
+                        <th>Categoría</th>
+                        <th>Participantes</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="torneosBody">
+                    <tr>
+                        <td>Torneo Pádel Verano</td>
+                        <td>2025-08-15</td>
+                        <td>A</td>
+                        <td>8</td>
+                        <td>
+                            <button class="btn btn-small" onclick="verLlaves(1)">🎯 Ver Llaves</button>
+                            <button class="btn btn-small btn-danger" onclick="eliminarTorneo(1)">🗑️</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="llavesSection" style="display:none;">
+            <h3>🎯 Llaves del Torneo</h3>
+            <div class="bracket">
+                <div class="round">
+                    <div class="match">Jugador 1 vs Jugador 8</div>
+                    <div class="match">Jugador 4 vs Jugador 5</div>
+                    <div class="match">Jugador 3 vs Jugador 6</div>
+                    <div class="match">Jugador 2 vs Jugador 7</div>
+                </div>
+                <div class="round">
+                    <div class="match">Ganador 1 vs Ganador 2</div>
+                    <div class="match">Ganador 3 vs Ganador 4</div>
+                </div>
+                <div class="round">
+                    <div class="match winner">Final: Ganador Semi 1 vs Ganador Semi 2</div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+function verLlaves(id){
+    document.getElementById('llavesSection').style.display='block';
+}
+function eliminarTorneo(id){ alert('Eliminar torneo '+id); }
+</script>
+</body>
+</html>

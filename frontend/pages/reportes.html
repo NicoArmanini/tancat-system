@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TANCAT - Reportes</title>
+    <link href="../assets/css/mainAdmin.css" rel="stylesheet">
+    <link href="../assets/css/dashboard.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="dashboard-container">
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="./assets/images/tancat-logo.png" alt="TANCAT" class="header-logo" onerror="this.style.display='none'">
+                <h1>TANCAT</h1>
+                <span class="system-subtitle">Sistema de Administración</span>
+            </div>
+            <div class="user-section">
+                <div class="user-info">
+                    <span class="user-name">Usuario</span>
+                    <span class="user-role">Administrador</span>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()">🚪 Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="main-navigation">
+        <div class="nav-content">
+            <button class="nav-item" onclick="navigateTo('/main')">🏠 Dashboard</button>
+            <button class="nav-item" onclick="navigateTo('/reservas')">📅 Reservas</button>
+            <button class="nav-item" onclick="navigateTo('/clientes')">👥 Clientes</button>
+            <button class="nav-item" onclick="navigateTo('/ventas')">💰 Ventas</button>
+            <button class="nav-item" onclick="navigateTo('/torneos')">🏆 Torneos</button>
+            <button class="nav-item" onclick="navigateTo('/inventario')">📦 Inventario</button>
+            <button class="nav-item active" onclick="navigateTo('/reportes')">📊 Reportes</button>
+        </div>
+    </nav>
+
+    <main class="dashboard-main">
+        <section class="reportes-filtros">
+            <h3>📊 Filtros de Reportes</h3>
+            <div class="filters-grid">
+                <input type="date" id="fechaInicio">
+                <input type="date" id="fechaFin">
+                <select id="tipoReporte">
+                    <option value="ventas">Ventas</option>
+                    <option value="reservas">Reservas</option>
+                    <option value="inventario">Inventario</option>
+                </select>
+                <button class="btn btn-primary" onclick="generarReporte()">Generar</button>
+            </div>
+        </section>
+
+        <section class="reportes-graficos">
+            <h3>📈 Gráficos</h3>
+            <canvas id="graficoReportes"></canvas>
+        </section>
+
+        <section class="reportes-tabla">
+            <h3>📄 Datos Detallados</h3>
+            <table class="reportes-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Detalle</th>
+                        <th>Monto</th>
+                    </tr>
+                </thead>
+                <tbody id="reportesBody">
+                    <tr>
+                        <td>2025-08-01</td>
+                        <td>Reserva Cancha Pádel</td>
+                        <td>$3,200</td>
+                    </tr>
+                    <tr>
+                        <td>2025-08-02</td>
+                        <td>Venta Paleta Pro</td>
+                        <td>$25,000</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+
+<script>
+function generarReporte(){
+    const ctx = document.getElementById('graficoReportes').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['01/08', '02/08', '03/08', '04/08'],
+            datasets: [{
+                label: 'Ingresos',
+                data: [3200, 25000, 8000, 12000],
+                borderColor: '#4caf50',
+                fill: false
+            }]
+        },
+        options: {responsive:true}
+    });
+}
+</script>
+</body>
+</html>
