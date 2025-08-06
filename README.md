@@ -8,8 +8,8 @@ Sistema completo de administración para Complejo Deportivo TANCAT con backend N
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/NicoArmanini/Sistema_Gestion_Complejo_Deportivo.git
-cd Sistema_Gestion_Complejo_Deportivo
+git clone https://github.com/NicoArmanini/tancat_system.git
+cd tancat_system
 
 # Instalar dependencias
 npm run setup
