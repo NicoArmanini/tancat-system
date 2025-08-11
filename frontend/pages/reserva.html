@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TANCAT - Reservas</title>
+    <link href="../assets/css/mainAdmin.css" rel="stylesheet">
+    <link href="../assets/css/dashboard.css" rel="stylesheet">
+</head>
+<body>
+<div class="dashboard-container">
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="./assets/images/tancat-logo.png" alt="TANCAT" class="header-logo" onerror="this.style.display='none'">
+                <h1>TANCAT</h1>
+                <span class="system-subtitle">Sistema de Administración</span>
+            </div>
+            <div class="user-section">
+                <div class="user-info">
+                    <span class="user-name">Usuario</span>
+                    <span class="user-role">Administrador</span>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()">🚪 Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Nav -->
+    <nav class="main-navigation">
+        <div class="nav-content">
+            <button class="nav-item" onclick="navigateTo('/main')">🏠 Dashboard</button>
+            <button class="nav-item active" onclick="navigateTo('/reservas')">📅 Reservas</button>
+            <button class="nav-item" onclick="navigateTo('/clientes')">👥 Clientes</button>
+            <button class="nav-item" onclick="navigateTo('/ventas')">💰 Ventas</button>
+            <button class="nav-item" onclick="navigateTo('/torneos')">🏆 Torneos</button>
+            <button class="nav-item" onclick="navigateTo('/inventario')">📦 Inventario</button>
+            <button class="nav-item" onclick="navigateTo('/reportes')">📊 Reportes</button>
+        </div>
+    </nav>
+
+    <!-- Main -->
+    <main class="dashboard-main">
+        <!-- Filtros -->
+        <section class="filters">
+            <h3>🔍 Buscar Reservas</h3>
+            <div class="filters-grid">
+                <select id="sedeSelect">
+                    <option value="">Todas las Sedes</option>
+                    <option value="Jacinto Ríos">Jacinto Ríos</option>
+                    <option value="Rincón">Rincón</option>
+                </select>
+                <select id="deporteSelect">
+                    <option value="">Todos los Deportes</option>
+                    <option value="Pádel">Pádel</option>
+                    <option value="Básquet">Básquet</option>
+                    <option value="Squash">Squash</option>
+                    <option value="Ping Pong">Ping Pong</option>
+                </select>
+                <input type="date" id="fechaSelect">
+                <button class="btn btn-primary" onclick="buscarReservas()">Buscar</button>
+            </div>
+        </section>
+
+        <!-- Tabla de Reservas -->
+        <section class="reservas-list">
+            <h3>📅 Reservas del Día</h3>
+            <table class="reservas-table">
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <th>Cliente</th>
+                        <th>Cancha</th>
+                        <th>Sede</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="reservasBody">
+                    <tr>
+                        <td>09:00 - 10:30</td>
+                        <td>Juan Pérez</td>
+                        <td>Pádel 1</td>
+                        <td>Jacinto Ríos</td>
+                        <td><span class="status confirmada">Confirmada</span></td>
+                        <td>
+                            <button class="btn btn-small" onclick="editarReserva(1)">✏️</button>
+                            <button class="btn btn-small btn-danger" onclick="eliminarReserva(1)">🗑️</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>11:00 - 12:00</td>
+                        <td>María García</td>
+                        <td>Básquet</td>
+                        <td>Jacinto Ríos</td>
+                        <td><span class="status pendiente">Pendiente Pago</span></td>
+                        <td>
+                            <button class="btn btn-small" onclick="editarReserva(2)">✏️</button>
+                            <button class="btn btn-small btn-danger" onclick="eliminarReserva(2)">🗑️</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Formulario Nueva Reserva -->
+        <section class="nueva-reserva">
+            <h3>➕ Nueva Reserva</h3>
+            <form id="reservaForm">
+                <div class="form-grid">
+                    <input type="text" id="nombre" placeholder="Nombre" required>
+                    <input type="text" id="apellido" placeholder="Apellido" required>
+                    <input type="tel" id="telefono" placeholder="Teléfono" required>
+                    <input type="email" id="email" placeholder="Email" required>
+                    <select id="sedeReserva" required>
+                        <option value="">Seleccione Sede</option>
+                        <option value="Jacinto Ríos">Jacinto Ríos</option>
+                        <option value="Rincón">Rincón</option>
+                    </select>
+                    <select id="deporteReserva" required>
+                        <option value="">Seleccione Deporte</option>
+                        <option value="Pádel">Pádel</option>
+                        <option value="Básquet">Básquet</option>
+                        <option value="Squash">Squash</option>
+                        <option value="Ping Pong">Ping Pong</option>
+                    </select>
+                    <input type="date" id="fechaReserva" required>
+                    <input type="time" id="horaReserva" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Confirmar Reserva</button>
+            </form>
+        </section>
+    </main>
+</div>
+<script>
+function buscarReservas(){ alert('Buscar reservas...'); }
+function editarReserva(id){ alert('Editar reserva '+id); }
+function eliminarReserva(id){ alert('Eliminar reserva '+id); }
+</script>
+</body>
+</html>

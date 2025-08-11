@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TANCAT - Inventario</title>
+    <link href="../assets/css/mainAdmin.css" rel="stylesheet">
+    <link href="../assets/css/dashboard.css" rel="stylesheet">
+</head>
+<body>
+<div class="dashboard-container">
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="./assets/images/tancat-logo.png" alt="TANCAT" class="header-logo" onerror="this.style.display='none'">
+                <h1>TANCAT</h1>
+                <span class="system-subtitle">Sistema de Administración</span>
+            </div>
+            <div class="user-section">
+                <div class="user-info">
+                    <span class="user-name">Usuario</span>
+                    <span class="user-role">Administrador</span>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()">🚪 Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="main-navigation">
+        <div class="nav-content">
+            <button class="nav-item" onclick="navigateTo('/main')">🏠 Dashboard</button>
+            <button class="nav-item" onclick="navigateTo('/reservas')">📅 Reservas</button>
+            <button class="nav-item" onclick="navigateTo('/clientes')">👥 Clientes</button>
+            <button class="nav-item" onclick="navigateTo('/ventas')">💰 Ventas</button>
+            <button class="nav-item" onclick="navigateTo('/torneos')">🏆 Torneos</button>
+            <button class="nav-item active" onclick="navigateTo('/inventario')">📦 Inventario</button>
+            <button class="nav-item" onclick="navigateTo('/reportes')">📊 Reportes</button>
+        </div>
+    </nav>
+
+    <main class="dashboard-main">
+        <!-- Buscador de productos -->
+        <section class="filters">
+            <h3>🔍 Buscar Productos</h3>
+            <div class="filters-grid">
+                <input type="text" id="buscarProducto" placeholder="Nombre o Código">
+                <button class="btn btn-primary" onclick="buscarProducto()">Buscar</button>
+            </div>
+        </section>
+
+        <!-- Tabla de inventario -->
+        <section class="inventario-list">
+            <h3>📦 Inventario Actual</h3>
+            <table class="inventario-table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Stock</th>
+                        <th>Precio</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="inventarioBody">
+                    <tr>
+                        <td>001</td>
+                        <td>Paleta Pádel Pro</td>
+                        <td>Pádel</td>
+                        <td>15</td>
+                        <td>$25,000</td>
+                        <td>
+                            <button class="btn btn-small" onclick="editarProducto(1)">✏️</button>
+                            <button class="btn btn-small btn-danger" onclick="eliminarProducto(1)">🗑️</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>002</td>
+                        <td>Pelotas Pádel (Pack x3)</td>
+                        <td>Pádel</td>
+                        <td>50</td>
+                        <td>$4,000</td>
+                        <td>
+                            <button class="btn btn-small" onclick="editarProducto(2)">✏️</button>
+                            <button class="btn btn-small btn-danger" onclick="eliminarProducto(2)">🗑️</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Formulario nuevo producto -->
+        <section class="nuevo-producto">
+            <h3>➕ Nuevo Producto</h3>
+            <form id="productoForm">
+                <div class="form-grid">
+                    <input type="text" id="codigoProducto" placeholder="Código" required>
+                    <input type="text" id="nombreProducto" placeholder="Nombre del Producto" required>
+                    <input type="text" id="categoriaProducto" placeholder="Categoría" required>
+                    <input type="number" id="stockProducto" placeholder="Stock" required>
+                    <input type="number" id="precioProducto" placeholder="Precio" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Agregar Producto</button>
+            </form>
+        </section>
+    </main>
+</div>
+
+<script>
+function buscarProducto(){ alert('Buscar producto...'); }
+function editarProducto(id){ alert('Editar producto '+id); }
+function eliminarProducto(id){ alert('Eliminar producto '+id); }
+</script>
+</body>
+</html>

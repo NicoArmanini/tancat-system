@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TANCAT - Clientes</title>
+    <link href="../assets/css/mainAdmin.css" rel="stylesheet">
+    <link href="../assets/css/dashboard.css" rel="stylesheet">
+</head>
+<body>
+<div class="dashboard-container">
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="./assets/images/tancat-logo.png" alt="TANCAT" class="header-logo" onerror="this.style.display='none'">
+                <h1>TANCAT</h1>
+                <span class="system-subtitle">Sistema de Administración</span>
+            </div>
+            <div class="user-section">
+                <div class="user-info">
+                    <span class="user-name">Usuario</span>
+                    <span class="user-role">Administrador</span>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()">🚪 Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Nav -->
+    <nav class="main-navigation">
+        <div class="nav-content">
+            <button class="nav-item" onclick="navigateTo('/main')">🏠 Dashboard</button>
+            <button class="nav-item" onclick="navigateTo('/reservas')">📅 Reservas</button>
+            <button class="nav-item active" onclick="navigateTo('/clientes')">👥 Clientes</button>
+            <button class="nav-item" onclick="navigateTo('/ventas')">💰 Ventas</button>
+            <button class="nav-item" onclick="navigateTo('/torneos')">🏆 Torneos</button>
+            <button class="nav-item" onclick="navigateTo('/inventario')">📦 Inventario</button>
+            <button class="nav-item" onclick="navigateTo('/reportes')">📊 Reportes</button>
+        </div>
+    </nav>
+
+    <!-- Main -->
+    <main class="dashboard-main">
+        <!-- Filtros -->
+        <section class="filters">
+            <h3>🔍 Buscar Clientes</h3>
+            <div class="filters-grid">
+                <input type="text" id="buscarCliente" placeholder="Nombre, Apellido o Email">
+                <button class="btn btn-primary" onclick="buscarClientes()">Buscar</button>
+            </div>
+        </section>
+
+        <!-- Tabla de Clientes -->
+        <section class="clientes-list">
+            <h3>👥 Lista de Clientes</h3>
+            <table class="clientes-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Reservas</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="clientesBody">
+                    <tr>
+                        <td>Juan</td>
+                        <td>Pérez</td>
+                        <td>juan@example.com</td>
+                        <td>351-555-1234</td>
+                        <td><button class="btn btn-small" onclick="verReservas(1)">5</button></td>
+                        <td>
+                            <button class="btn btn-small" onclick="editarCliente(1)">✏️</button>
+                            <button class="btn btn-small btn-danger" onclick="eliminarCliente(1)">🗑️</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>María</td>
+                        <td>García</td>
+                        <td>maria@example.com</td>
+                        <td>351-555-5678</td>
+                        <td><button class="btn btn-small" onclick="verReservas(2)">3</button></td>
+                        <td>
+                            <button class="btn btn-small" onclick="editarCliente(2)">✏️</button>
+                            <button class="btn btn-small btn-danger" onclick="eliminarCliente(2)">🗑️</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Formulario Nuevo Cliente -->
+        <section class="nuevo-cliente">
+            <h3>➕ Nuevo Cliente</h3>
+            <form id="clienteForm">
+                <div class="form-grid">
+                    <input type="text" id="nombreCliente" placeholder="Nombre" required>
+                    <input type="text" id="apellidoCliente" placeholder="Apellido" required>
+                    <input type="email" id="emailCliente" placeholder="Email" required>
+                    <input type="tel" id="telefonoCliente" placeholder="Teléfono" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Registrar Cliente</button>
+            </form>
+        </section>
+    </main>
+</div>
+
+<!-- Modal Historial de Reservas -->
+<div id="reservasModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📅 Historial de Reservas</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <table class="reservas-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Cancha</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="historialReservasBody">
+                    <tr>
+                        <td>2025-08-05</td>
+                        <td>09:00 - 10:30</td>
+                        <td>Pádel 1</td>
+                        <td>Confirmada</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function buscarClientes(){ alert('Buscar clientes...'); }
+function editarCliente(id){ alert('Editar cliente '+id); }
+function eliminarCliente(id){ alert('Eliminar cliente '+id); }
+function verReservas(id){ document.getElementById('reservasModal').style.display='block'; }
+function closeModal(){ document.getElementById('reservasModal').style.display='none'; }
+</script>
+</body>
+</html>
