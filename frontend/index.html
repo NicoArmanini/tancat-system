@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TANCAT - Complejo Deportivo</title>
     <link href="assets/css/cliente-main.css" rel="stylesheet">
-    <meta name="description" content="TANCAT - Complejo deportivo líder en Córdoba. Reserva canchas de pádel, básquet, ping pong y más.">
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 </head>
 <body>
     <!-- Header con navegación -->
@@ -19,12 +17,12 @@
             <nav class="main-nav">
                 <ul>
                     <li><a href="#inicio" class="nav-link active">Inicio</a></li>
-                    <li><a href="#sedes" class="nav-link">Sedes</a></li>
+                    <li><a href="#sedes" class="nav-link">Nuestras Sedes</a></li>
                     <li><a href="#deportes" class="nav-link">Deportes</a></li>
+                    <li><a href="#servicios" class="nav-link">Servicios</a></li>
                     <li><a href="#reservas" class="nav-link">Reservar</a></li>
-                    <li><a href="#torneos" class="nav-link">Torneos</a></li>
                     <li><a href="#contacto" class="nav-link">Contacto</a></li>
-                    <li><a href="pages/login.html" class="nav-link login-btn">Administración</a></li>
+                    <li><a href="/admin/" class="nav-link login-btn">Administración</a></li>
                 </ul>
             </nav>
             <div class="mobile-menu-toggle">
@@ -39,7 +37,7 @@
     <section class="hero-section" id="inicio">
         <div class="hero-content">
             <h1>Bienvenidos a TANCAT</h1>
-            <p>El complejo deportivo líder en Córdoba desde 1991</p>
+            <p>El complejo deportivo líder en Córdoba con más de 30 años de trayectoria</p>
             <div class="hero-buttons">
                 <a href="#reservas" class="btn btn-primary">Reservar Cancha</a>
                 <a href="#sedes" class="btn btn-secondary">Nuestras Sedes</a>
@@ -51,10 +49,15 @@
     <!-- Información de Sedes -->
     <section class="sedes-section" id="sedes">
         <div class="container">
-            <h2 class="section-title">Nuestras Sedes</h2>
-            <div class="sedes-grid" id="sedesContainer">
-                <!-- Se cargará dinámicamente desde el backend -->
-                <div class="loading-placeholder">
+            <div class="section-header">
+                <h2>Nuestras Sedes</h2>
+                <p>Dos ubicaciones estratégicas en Córdoba para brindarte la mejor experiencia deportiva</p>
+            </div>
+            
+            <div class="sedes-grid" id="sedes-container">
+                <!-- Las sedes se cargarán dinámicamente aquí -->
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
                     <p>Cargando información de sedes...</p>
                 </div>
             </div>
@@ -64,10 +67,15 @@
     <!-- Deportes Disponibles -->
     <section class="deportes-section" id="deportes">
         <div class="container">
-            <h2 class="section-title">Deportes Disponibles</h2>
-            <div class="deportes-grid" id="deportesContainer">
-                <!-- Se cargará dinámicamente desde el backend -->
-                <div class="loading-placeholder">
+            <div class="section-header">
+                <h2>Deportes Disponibles</h2>
+                <p>Practica tu deporte favorito en nuestras modernas instalaciones</p>
+            </div>
+            
+            <div class="deportes-grid" id="deportes-container">
+                <!-- Los deportes se cargarán dinámicamente aquí -->
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
                     <p>Cargando deportes disponibles...</p>
                 </div>
             </div>
@@ -77,37 +85,16 @@
     <!-- Servicios Adicionales -->
     <section class="servicios-section" id="servicios">
         <div class="container">
-            <h2 class="section-title">Servicios Adicionales</h2>
-            <div class="servicios-grid">
-                <div class="servicio-item">
-                    <div class="servicio-icon">🛍️</div>
-                    <h4>Tienda Deportiva</h4>
-                    <p>Paletas, pelotas, indumentaria y accesorios deportivos.</p>
-                </div>
-                <div class="servicio-item">
-                    <div class="servicio-icon">🥤</div>
-                    <h4>Bebidas</h4>
-                    <p>Variedad de bebidas refrescantes y deportivas.</p>
-                </div>
-                <div class="servicio-item">
-                    <div class="servicio-icon">🎮</div>
-                    <h4>Entretenimiento</h4>
-                    <p>Máquinas arcade y metegol para toda la familia.</p>
-                </div>
-                <div class="servicio-item">
-                    <div class="servicio-icon">🍖</div>
-                    <h4>Eventos</h4>
-                    <p>Parrilla y salón para cumpleaños y reuniones.</p>
-                </div>
-                <div class="servicio-item">
-                    <div class="servicio-icon">🏆</div>
-                    <h4>Torneos</h4>
-                    <p>Organizamos torneos regulares de pádel.</p>
-                </div>
-                <div class="servicio-item">
-                    <div class="servicio-icon">👨‍🏫</div>
-                    <h4>Clases</h4>
-                    <p>Clases de pádel con instructores profesionales.</p>
+            <div class="section-header">
+                <h2>Servicios Adicionales</h2>
+                <p>Complementa tu experiencia deportiva con nuestros servicios especializados</p>
+            </div>
+            
+            <div class="servicios-grid" id="servicios-container">
+                <!-- Los servicios se cargarán dinámicamente aquí -->
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Cargando servicios disponibles...</p>
                 </div>
             </div>
         </div>
@@ -118,92 +105,225 @@
         <div class="container">
             <div class="reservas-content">
                 <div class="reservas-text">
-                    <h2>¿Listo para jugar?</h2>
-                    <p>Consulta la disponibilidad en tiempo real desde nuestro sistema. Información actualizada al instante.</p>
+                    <h2>Reserva tu Cancha</h2>
+                    <p>Sistema de reservas online disponible las 24 horas. Reserva tu turno de manera rápida y segura.</p>
+                    
                     <ul class="reservas-features">
-                        <li>✅ Consulta disponibilidad en tiempo real</li>
-                        <li>✅ Información actualizada desde nuestro sistema</li>
-                        <li>✅ Reservas presenciales en Sede Principal</li>
-                        <li>✅ También por WhatsApp</li>
-                        <li>✅ Pago total o con seña</li>
+                        <li>✅ Reservas en tiempo real</li>
+                        <li>✅ Confirmación inmediata</li>
+                        <li>✅ Pago online seguro</li>
+                        <li>✅ Cancelación flexible</li>
+                        <li>✅ Historial de reservas</li>
                     </ul>
                 </div>
+                
                 <div class="reservas-form">
-                    <h3>Consulta Disponibilidad</h3>
-                    <form id="consultaForm">
+                    <h3>Consultar Disponibilidad</h3>
+                    
+                    <form id="consulta-form">
                         <div class="form-group">
-                            <label for="sede">Sede</label>
-                            <select id="sede" name="sede" required>
+                            <label for="sede-select">Sede</label>
+                            <select id="sede-select" name="sede" required>
                                 <option value="">Cargando sedes...</option>
                             </select>
                         </div>
+                        
                         <div class="form-group">
-                            <label for="deporte">Deporte</label>
-                            <select id="deporte" name="deporte" required>
-                                <option value="">Selecciona una sede primero</option>
+                            <label for="deporte-select">Deporte</label>
+                            <select id="deporte-select" name="deporte" required>
+                                <option value="">Cargando deportes...</option>
                             </select>
                         </div>
+                        
                         <div class="form-group">
-                            <label for="fecha">Fecha</label>
-                            <input type="date" id="fecha" name="fecha" required>
+                            <label for="fecha-input">Fecha</label>
+                            <input type="date" id="fecha-input" name="fecha" required min="">
                         </div>
-                        <button type="submit" class="btn btn-primary full-width">
-                            Ver Disponibilidad
+                        
+                        <button type="submit" class="btn btn-primary">
+                            Consultar Disponibilidad
                         </button>
                     </form>
+                    
+                    <div id="turnos-disponibles" class="turnos-result" style="display: none;">
+                        <!-- Los turnos disponibles se mostrarán aquí -->
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Sección de Torneos -->
-    <section class="torneos-section" id="torneos">
+    <!-- Sección de Contacto -->
+    <section class="contacto-section" id="contacto">
         <div class="container">
-            <h2 class="section-title">Torneos Activos</h2>
-            <div class="torneos-grid" id="torneosContainer">
-                <!-- Se cargará dinámicamente desde el backend -->
-                <div class="loading-placeholder">
-                    <p>Cargando torneos activos...</p>
+            <div class="section-header">
+                <h2>Contacto</h2>
+                <p>Estamos aquí para ayudarte. Contáctanos por cualquier consulta</p>
+            </div>
+            
+            <div class="contacto-content">
+                <div class="contacto-info">
+                    <div class="contacto-item">
+                        <div class="contacto-icon">📱</div>
+                        <div>
+                            <h4>WhatsApp</h4>
+                            <p>+54 351 137-5468</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contacto-item">
+                        <div class="contacto-icon">📧</div>
+                        <div>
+                            <h4>Email</h4>
+                            <p>info@tancat.com.ar</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contacto-item">
+                        <div class="contacto-icon">🕒</div>
+                        <div>
+                            <h4>Atención al Cliente</h4>
+                            <p>Lunes a Sábado: 9:00 - 22:00</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="redes-sociales">
+                    <h4>Síguenos en nuestras redes</h4>
+                    <div class="social-links">
+                        <a href="#" class="social-link">📘</a>
+                        <a href="#" class="social-link">📷</a>
+                        <a href="#" class="social-link">💬</a>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="main-footer" id="contacto">
+    <footer class="main-footer">
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h4>TANCAT</h4>
-                    <p>Complejo deportivo con más de 30 años de experiencia en Córdoba.</p>
-                    <p><strong>Sistema conectado:</strong> Información en tiempo real.</p>
+                    <h4>TANCAT Complejo Deportivo</h4>
+                    <p>Más de 30 años brindando la mejor experiencia deportiva en Córdoba.</p>
+                    <p>Calidad, profesionalismo y pasión por el deporte.</p>
                 </div>
+                
                 <div class="footer-section">
-                    <h4>Sedes</h4>
-                    <p><strong>Jacinto Ríos:</strong> Jacinto Ríos 232</p>
-                    <p><strong>Rincón:</strong> Rincón 985</p>
+                    <h4>Sede Jacinto Ríos</h4>
+                    <p>📍 Jacinto Ríos 232, Gral Paz, Córdoba</p>
+                    <p>📞 351 137-5468</p>
+                    <p>🕒 Lun-Sáb: 9:00-24:00 | Dom: 14:00-22:00</p>
                 </div>
+                
                 <div class="footer-section">
-                    <h4>Horarios</h4>
-                    <p><strong>Lun-Sáb:</strong> Consultar por sede</p>
-                    <p><strong>Domingo:</strong> 17:00-23:00</p>
+                    <h4>Sede Rincón</h4>
+                    <p>📍 Rincón 985, Gral Paz, Córdoba</p>
+                    <p>📞 351 137-5468</p>
+                    <p>🕒 Lun-Sáb: 15:00-24:00 | Dom: Cerrado</p>
                 </div>
+                
                 <div class="footer-section">
-                    <h4>Contacto</h4>
-                    <p>Reservas presenciales</p>
-                    <p>WhatsApp disponible</p>
-                    <p><strong>Sistema:</strong> Datos en tiempo real</p>
+                    <h4>Enlaces Rápidos</h4>
+                    <ul class="footer-links">
+                        <li><a href="#reservas">Reservar Cancha</a></li>
+                        <li><a href="#deportes">Deportes</a></li>
+                        <li><a href="#servicios">Servicios</a></li>
+                        <li><a href="/admin/">Administración</a></li>
+                    </ul>
                 </div>
             </div>
+            
             <div class="footer-bottom">
-                <p>&copy; 2025 TANCAT - Complejo Deportivo. Todos los derechos reservados.</p>
-                <p>Sistema de reservas en tiempo real</p>
+                <p>&copy; 2025 TANCAT Complejo Deportivo. Todos los derechos reservados.</p>
             </div>
         </div>
     </footer>
 
-    <!-- Scripts en orden correcto -->
-    <script src="assets/js/apiClient.js"></script>
+    <!-- Scripts -->
     <script src="assets/js/cliente-main.js"></script>
+    
+    <script>
+        // Configurar fecha mínima para el input de fecha (hoy)
+        document.addEventListener('DOMContentLoaded', function() {
+            const fechaInput = document.getElementById('fecha-input');
+            if (fechaInput) {
+                const hoy = new Date();
+                const fechaMinima = hoy.toISOString().split('T')[0];
+                fechaInput.setAttribute('min', fechaMinima);
+                fechaInput.value = fechaMinima;
+            }
+            
+            // Manejar envío del formulario de consulta
+            const consultaForm = document.getElementById('consulta-form');
+            if (consultaForm) {
+                consultaForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    consultarDisponibilidad();
+                });
+            }
+        });
+        
+        async function consultarDisponibilidad() {
+            const form = document.getElementById('consulta-form');
+            const formData = new FormData(form);
+            const turnosContainer = document.getElementById('turnos-disponibles');
+            
+            const datos = {
+                sede: formData.get('sede'),
+                deporte: formData.get('deporte'),
+                fecha: formData.get('fecha')
+            };
+            
+            if (!datos.sede || !datos.deporte || !datos.fecha) {
+                alert('Por favor completa todos los campos');
+                return;
+            }
+            
+            turnosContainer.style.display = 'block';
+            turnosContainer.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Consultando disponibilidad...</p>
+                </div>
+            `;
+            
+            try {
+                // Simular consulta de disponibilidad
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                turnosContainer.innerHTML = `
+                    <h4>Turnos Disponibles</h4>
+                    <div class="turnos-grid">
+                        <div class="turno-card">
+                            <span class="turno-hora">09:00 - 10:30</span>
+                            <span class="turno-precio">$25.000</span>
+                            <button class="btn btn-sm btn-primary">Reservar</button>
+                        </div>
+                        <div class="turno-card">
+                            <span class="turno-hora">10:30 - 12:00</span>
+                            <span class="turno-precio">$25.000</span>
+                            <button class="btn btn-sm btn-primary">Reservar</button>
+                        </div>
+                        <div class="turno-card">
+                            <span class="turno-hora">15:00 - 16:30</span>
+                            <span class="turno-precio">$25.000</span>
+                            <button class="btn btn-sm btn-primary">Reservar</button>
+                        </div>
+                    </div>
+                    <p class="turnos-note">* Los precios pueden variar según la cancha y horario</p>
+                `;
+                
+            } catch (error) {
+                turnosContainer.innerHTML = `
+                    <div class="error-message">
+                        <p>Error al consultar disponibilidad. Intenta nuevamente.</p>
+                        <button onclick="consultarDisponibilidad()" class="btn btn-primary">Reintentar</button>
+                    </div>
+                `;
+            }
+        }
+    </script>
 </body>
 </html>

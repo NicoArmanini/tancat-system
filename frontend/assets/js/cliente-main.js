@@ -1,8 +1,25 @@
 /**
  * TANCAT - Sistema Cliente Main
  * Archivo: cliente-main.js
- * Descripción: Funcionalidad principal conectada al backend
+ * Descripción: Funcionalidad principal para la página del cliente - CORREGIDO
  */
+
+// ====================================
+// CONFIGURACIÓN Y CONSTANTES
+// ====================================
+const CONFIG = {
+    API_BASE_URL: 'http://localhost:3000/api',
+    ENDPOINTS: {
+        SEDES: '/cliente/sedes',
+        DEPORTES: '/cliente/deportes',
+        CANCHAS: '/cliente/canchas',
+        CONSULTA_DISPONIBILIDAD: '/cliente/consulta-disponibilidad',
+        TORNEOS: '/cliente/torneos',
+        ESTADISTICAS: '/cliente/estadisticas',
+        COMBINACIONES: '/cliente/combinaciones-disponibles'
+    },
+    MODO_OFFLINE: false // Activado para conectar al backend
+};
 
 // ====================================
 // ESTADO DE LA APLICACIÓN
@@ -16,1107 +33,710 @@ let appState = {
     fechaSeleccionada: null,
     turnosDisponibles: [],
     cargando: false,
-    backendConectado: false
+    cache: new Map(),
+    backendDisponible: false
 };
 
 // ====================================
-// INICIALIZACIÓN
+// UTILIDADES DE API
 // ====================================
-document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
-});
-
-async function initializeApp() {
-    console.log('🚀 Inicializando TANCAT Cliente con Backend...');
-    
-    try {
-        // Verificar conexión al backend
-        await verificarConexionBackend();
-        
-        // Configurar UI básica
-        setupSmoothScrolling();
-        setupMobileMenu();
-        setupDateInput();
-        
-        // Cargar datos desde backend
-        await cargarDatosIniciales();
-        
-        // Configurar formulario de consulta
-        setupConsultaForm();
-        setupFormFilters();
-        
-        // Aplicar animaciones
-        applyEntranceAnimations();
-        
-        console.log('✅ TANCAT Cliente inicializado correctamente');
-        
-    } catch (error) {
-        console.error('❌ Error al inicializar la aplicación:', error);
-        mostrarErrorConexion();
-    }
-}
-
-// ====================================
-// CONEXIÓN AL BACKEND
-// ====================================
-async function verificarConexionBackend() {
-    try {
-        console.log('🔗 Verificando conexión al backend...');
-        
-        const conectado = await window.apiClient.checkConnectivity();
-        
-        if (conectado) {
-            appState.backendConectado = true;
-            mostrarEstadoConexion('conectado');
-            console.log('✅ Backend conectado correctamente');
-        } else {
-            throw new Error('Backend no disponible');
-        }
-        
-    } catch (error) {
-        appState.backendConectado = false;
-        mostrarEstadoConexion('desconectado');
-        console.error('❌ Error de conexión al backend:', error.message);
-        throw error;
-    }
-}
-
-function mostrarEstadoConexion(estado) {
-    // Crear indicador de estado si no existe
-    let indicador = document.getElementById('connection-status-indicator');
-    
-    if (!indicador) {
-        indicador = document.createElement('div');
-        indicador.id = 'connection-status-indicator';
-        indicador.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            z-index: 10000;
-            transition: all 0.3s ease;
-        `;
-        document.body.appendChild(indicador);
-    }
-    
-    if (estado === 'conectado') {
-        indicador.innerHTML = '🟢 Backend Conectado';
-        indicador.style.background = '#d4edda';
-        indicador.style.color = '#155724';
-        indicador.style.border = '1px solid #c3e6cb';
-    } else {
-        indicador.innerHTML = '🔴 Sin Conexión Backend';
-        indicador.style.background = '#f8d7da';
-        indicador.style.color = '#721c24';
-        indicador.style.border = '1px solid #f5c6cb';
-    }
-}
-
-// ====================================
-// CARGA DE DATOS DESDE BACKEND
-// ====================================
-async function cargarDatosIniciales() {
-    if (!appState.backendConectado) {
-        throw new Error('Backend no conectado');
-    }
-    
-    try {
-        console.log('📊 Cargando datos desde backend...');
-        
-        // Mostrar loading
-        setLoadingState(true);
-        
-        // Cargar datos en paralelo
-        const [sedesResponse, deportesResponse, combinacionesResponse] = await Promise.all([
-            window.apiClient.obtenerSedes(),
-            window.apiClient.obtenerDeportes(),
-            window.apiClient.obtenerCombinacionesDisponibles()
-        ]);
-        
-        // Verificar respuestas exitosas
-        if (!sedesResponse.success || !deportesResponse.success || !combinacionesResponse.success) {
-            throw new Error('Error en respuestas del servidor');
-        }
-        
-        // Actualizar estado
-        appState.sedes = sedesResponse.data || [];
-        appState.deportes = deportesResponse.data || [];
-        appState.combinacionesDisponibles = combinacionesResponse.data || [];
-        
-        // Poblar selects del formulario
-        poblarSelectSedes();
-        
-        console.log('✅ Datos cargados desde backend:', {
-            sedes: appState.sedes.length,
-            deportes: appState.deportes.length,
-            combinaciones: appState.combinacionesDisponibles.length
-        });
-        
-    } catch (error) {
-        console.error('❌ Error al cargar datos desde backend:', error);
-        throw error;
-    } finally {
-        setLoadingState(false);
-    }
-}
-
-function poblarSelectSedes() {
-    const sedeSelect = document.getElementById('sede');
-    
-    if (!sedeSelect) {
-        console.warn('Elemento select de sede no encontrado');
-        return;
-    }
-    
-    // Limpiar opciones existentes excepto la primera
-    sedeSelect.innerHTML = '<option value="">Selecciona una sede</option>';
-    
-    // Agregar sedes desde backend
-    appState.sedes.forEach(sede => {
-        const option = document.createElement('option');
-        option.value = sede.id;
-        option.textContent = sede.nombre;
-        option.dataset.direccion = sede.direccion;
-        option.dataset.horarios = sede.horarios.textoCompleto;
-        sedeSelect.appendChild(option);
-    });
-}
-
-// ====================================
-// NAVEGACIÓN Y UI
-// ====================================
-function setupSmoothScrolling() {
-    const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
-    
-    navLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href').substring(1);
-            const targetElement = document.getElementById(targetId);
-            
-            if (targetElement) {
-                const header = document.querySelector('.main-header');
-                const headerHeight = header ? header.offsetHeight : 80;
-                const targetPosition = targetElement.offsetTop - headerHeight - 20;
-                
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'smooth'
-                });
-                
-                updateActiveNavLink(this);
-            }
-        });
-    });
-    
-    window.addEventListener('scroll', debounce(detectarSeccionActiva, 100));
-}
-
-function detectarSeccionActiva() {
-    const sections = document.querySelectorAll('section[id]');
-    const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
-    const header = document.querySelector('.main-header');
-    const headerHeight = header ? header.offsetHeight : 80;
-    
-    let current = '';
-    
-    sections.forEach(section => {
-        const sectionTop = section.offsetTop - headerHeight - 50;
-        const sectionHeight = section.offsetHeight;
-        
-        if (window.scrollY >= sectionTop && window.scrollY < sectionTop + sectionHeight) {
-            current = section.getAttribute('id');
-        }
-    });
-    
-    navLinks.forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('href') === `#${current}`) {
-            link.classList.add('active');
-        }
-    });
-}
-
-function setupMobileMenu() {
-    const mobileToggle = document.querySelector('.mobile-menu-toggle');
-    const mainNav = document.querySelector('.main-nav');
-    
-    if (mobileToggle && mainNav) {
-        mobileToggle.addEventListener('click', function() {
-            mainNav.classList.toggle('mobile-active');
-            this.classList.toggle('active');
-        });
-        
-        mainNav.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                mainNav.classList.remove('mobile-active');
-                mobileToggle.classList.remove('active');
-            });
-        });
-    }
-}
-
-function updateActiveNavLink(activeLink) {
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-    activeLink.classList.add('active');
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
+class ApiClient {
+    static async request(endpoint, options = {}) {
+        const url = `${CONFIG.API_BASE_URL}${endpoint}`;
+        const config = {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            ...options
         };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
 
-// ====================================
-// FORMULARIO DE CONSULTA
-// ====================================
-function setupConsultaForm() {
-    const form = document.getElementById('consultaForm');
-    
-    if (form) {
-        form.addEventListener('submit', handleConsultaSubmit);
-    } else {
-        console.warn('Formulario de consulta no encontrado');
-    }
-}
-
-function setupDateInput() {
-    const fechaInput = document.getElementById('fecha');
-    
-    if (fechaInput) {
-        const today = new Date().toISOString().split('T')[0];
-        fechaInput.min = today;
-        fechaInput.value = today;
-        
-        const maxDate = new Date();
-        maxDate.setDate(maxDate.getDate() + 30);
-        fechaInput.max = maxDate.toISOString().split('T')[0];
-    }
-}
-
-function setupFormFilters() {
-    const sedeSelect = document.getElementById('sede');
-    const deporteSelect = document.getElementById('deporte');
-    
-    if (sedeSelect) {
-        sedeSelect.addEventListener('change', function() {
-            const sedeId = parseInt(this.value);
-            appState.sedeSeleccionada = sedeId;
-            updateDeportesDisponibles(sedeId);
-            mostrarInfoSede(sedeId);
-        });
-    }
-    
-    if (deporteSelect) {
-        deporteSelect.addEventListener('change', function() {
-            appState.deporteSeleccionado = parseInt(this.value);
-        });
-    }
-}
-
-function updateDeportesDisponibles(sedeId) {
-    const deporteSelect = document.getElementById('deporte');
-    
-    if (!deporteSelect) {
-        console.warn('Select de deporte no encontrado');
-        return;
-    }
-    
-    if (!sedeId) {
-        deporteSelect.innerHTML = '<option value="">Selecciona un deporte</option>';
-        return;
-    }
-    
-    // Encontrar la sede en las combinaciones disponibles
-    const sedeInfo = appState.combinacionesDisponibles.find(s => s.sede.id === sedeId);
-    
-    if (!sedeInfo) {
-        deporteSelect.innerHTML = '<option value="">No hay deportes disponibles</option>';
-        return;
-    }
-    
-    // Limpiar y poblar opciones de deportes
-    deporteSelect.innerHTML = '<option value="">Selecciona un deporte</option>';
-    
-    sedeInfo.deportes.forEach(deporte => {
-        const option = document.createElement('option');
-        option.value = deporte.id;
-        option.textContent = `${deporte.nombre} (${deporte.canchas} cancha${deporte.canchas > 1 ? 's' : ''})`;
-        deporteSelect.appendChild(option);
-    });
-}
-
-function mostrarInfoSede(sedeId) {
-    if (!sedeId) {
-        ocultarInfoSede();
-        return;
-    }
-    
-    const sede = appState.sedes.find(s => s.id === sedeId);
-    
-    if (!sede) return;
-    
-    let infoElement = document.getElementById('sede-info-display');
-    
-    if (!infoElement) {
-        infoElement = document.createElement('div');
-        infoElement.id = 'sede-info-display';
-        infoElement.className = 'sede-info-display';
-        
-        const form = document.getElementById('consultaForm');
-        if (form && form.parentNode) {
-            form.parentNode.insertBefore(infoElement, form.nextSibling);
+        try {
+            console.log(`🔄 Realizando petición a: ${url}`);
+            
+            const response = await fetch(url, config);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log(`✅ Respuesta exitosa de ${endpoint}:`, data);
+            
+            return {
+                success: true,
+                data: data.data || data,
+                message: data.message || 'OK'
+            };
+            
+        } catch (error) {
+            console.error(`❌ Error en petición a ${endpoint}:`, error);
+            
+            // Si el backend no está disponible, usar datos de fallback
+            return this.getFallbackData(endpoint);
         }
     }
+
+    static async get(endpoint, params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const fullEndpoint = queryString ? `${endpoint}?${queryString}` : endpoint;
+        return this.request(fullEndpoint);
+    }
+
+    static getFallbackData(endpoint) {
+        console.warn(`⚠️ Usando datos de fallback para ${endpoint}`);
+        
+        const fallbackData = {
+            '/cliente/sedes': {
+                success: true,
+                data: [
+                    {
+                        id_sede: 1,
+                        nombre: "Jacinto Rios",
+                        direccion: "Jacinto Rios 232, Gral Paz, Cordoba",
+                        telefono: "3511375468",
+                        horario_apertura: "09:00:00",
+                        horario_cierre: "00:00:00",
+                        dias_funcionamiento: "Lunes a Sabado de 09 a 00 - Domingo de 14 a 22 pm",
+                        activo: true
+                    },
+                    {
+                        id_sede: 2,
+                        nombre: "Rincon",
+                        direccion: "Rincon 985, Gral Paz, Cordoba",
+                        telefono: "3511375468",
+                        horario_apertura: "15:00:00",
+                        horario_cierre: "00:00:00",
+                        dias_funcionamiento: "Lunes a Sabado de 15 a 00 - Domingos Cerrado",
+                        activo: true
+                    }
+                ]
+            },
+            '/cliente/deportes': {
+                success: true,
+                data: [
+                    {
+                        id_deporte: 1,
+                        nombre: "Padel",
+                        descripcion: "Duracion 90 min",
+                        duracion_turno: 90,
+                        precio_base: "25000.00",
+                        activo: true
+                    },
+                    {
+                        id_deporte: 2,
+                        nombre: "Basquet",
+                        descripcion: "Duracion 60 min",
+                        duracion_turno: 60,
+                        precio_base: "20000.00",
+                        activo: true
+                    },
+                    {
+                        id_deporte: 3,
+                        nombre: "Squash",
+                        descripcion: "Duracion 60 min",
+                        duracion_turno: 60,
+                        precio_base: "25000.00",
+                        activo: true
+                    },
+                    {
+                        id_deporte: 4,
+                        nombre: "Ping Pong",
+                        descripcion: "Duracion 30 min",
+                        duracion_turno: 30,
+                        precio_base: "10000.00",
+                        activo: true
+                    },
+                    {
+                        id_deporte: 5,
+                        nombre: "Voley",
+                        descripcion: "Duracion 60 min",
+                        duracion_turno: 60,
+                        precio_base: "20000.00",
+                        activo: true
+                    }
+                ]
+            }
+        };
+
+        return fallbackData[endpoint] || { success: false, data: [], message: 'No hay datos de fallback disponibles' };
+    }
+}
+
+// ====================================
+// UTILIDADES DE INTERFAZ
+// ====================================
+function mostrarCargando(elemento, mostrar = true) {
+    if (!elemento) return;
     
-    infoElement.innerHTML = `
-        <div class="info-sede-seleccionada">
-            <h4>📍 ${sede.nombre}</h4>
-            <p><strong>Dirección:</strong> ${sede.direccion}</p>
-            <p><strong>Horarios:</strong> ${sede.horarios.textoCompleto}</p>
+    if (mostrar) {
+        elemento.innerHTML = `
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p>Cargando información...</p>
+            </div>
+        `;
+    }
+}
+
+function mostrarError(elemento, mensaje) {
+    if (!elemento) return;
+    
+    elemento.innerHTML = `
+        <div class="error-message">
+            <div class="error-icon">⚠️</div>
+            <h3>Error al cargar datos</h3>
+            <p>${mensaje}</p>
+            <button onclick="location.reload()" class="btn btn-primary">Reintentar</button>
         </div>
     `;
-    
-    infoElement.style.cssText = `
-        margin-top: 1rem;
-        padding: 1rem;
-        background: var(--background-light);
-        border-radius: 8px;
-        border-left: 4px solid var(--accent-red);
-        animation: fadeInUp 0.3s ease-out;
-    `;
 }
 
-function ocultarInfoSede() {
-    const infoElement = document.getElementById('sede-info-display');
-    if (infoElement) {
-        infoElement.remove();
-    }
+function formatearPrecio(precio) {
+    const num = typeof precio === 'string' ? parseFloat(precio) : precio;
+    return new Intl.NumberFormat('es-AR', {
+        style: 'currency',
+        currency: 'ARS',
+        minimumFractionDigits: 0
+    }).format(num);
 }
 
-// ====================================
-// MANEJO DE CONSULTAS AL BACKEND
-// ====================================
-async function handleConsultaSubmit(e) {
-    e.preventDefault();
+function formatearHorario(apertura, cierre) {
+    if (!apertura || !cierre) return 'Horario no disponible';
     
-    if (!appState.backendConectado) {
-        mostrarErrorConsulta('No hay conexión al servidor. Verifica tu conexión.');
-        return;
-    }
-    
-    const formData = new FormData(e.target);
-    const consultaData = {
-        sede_id: parseInt(formData.get('sede')),
-        deporte_id: parseInt(formData.get('deporte')),
-        fecha: formData.get('fecha')
+    const formatHora = (hora) => {
+        return hora.substring(0, 5); // HH:MM
     };
     
-    // Validar datos localmente
-    if (!validateConsultaData(consultaData)) {
-        return;
-    }
-    
-    // Actualizar estado
-    Object.assign(appState, {
-        sedeSeleccionada: consultaData.sede_id,
-        deporteSeleccionado: consultaData.deporte_id,
-        fechaSeleccionada: consultaData.fecha
-    });
-    
+    return `${formatHora(apertura)} - ${formatHora(cierre)}`;
+}
+
+// ====================================
+// CARGA Y RENDERIZADO DE SEDES
+// ====================================
+async function cargarSedes() {
+    const sedesContainer = document.getElementById('sedes-container');
+    if (!sedesContainer) return;
+
+    mostrarCargando(sedesContainer);
+
     try {
-        setLoadingState(true);
+        const response = await ApiClient.get(CONFIG.ENDPOINTS.SEDES);
         
-        console.log('🔍 Consultando disponibilidad al backend...', consultaData);
-        
-        // Realizar consulta al backend
-        const response = await window.apiClient.consultarDisponibilidad(
-            consultaData.sede_id,
-            consultaData.deporte_id,
-            consultaData.fecha
-        );
-        
-        if (response.success) {
-            console.log('✅ Disponibilidad obtenida:', response.data);
-            mostrarResultadosDisponibilidad(response.data);
+        if (response.success && response.data && response.data.length > 0) {
+            appState.sedes = response.data;
+            renderizarSedes(response.data);
         } else {
-            throw new Error(response.message || 'Error en la consulta');
+            throw new Error('No se encontraron sedes disponibles');
         }
         
     } catch (error) {
-        console.error('❌ Error al consultar disponibilidad:', error);
-        mostrarErrorConsulta(error.message || 'Error al consultar disponibilidad. Intenta nuevamente.');
-    } finally {
-        setLoadingState(false);
+        console.error('Error al cargar sedes:', error);
+        mostrarError(sedesContainer, 'No se pudieron cargar las sedes. Verifica la conexión con el servidor.');
     }
 }
 
-function validateConsultaData(data) {
-    const errores = [];
-    
-    if (!data.sede_id || isNaN(data.sede_id)) {
-        errores.push('Debe seleccionar una sede válida');
-    }
-    
-    if (!data.deporte_id || isNaN(data.deporte_id)) {
-        errores.push('Debe seleccionar un deporte válido');
-    }
-    
-    if (!data.fecha) {
-        errores.push('Debe seleccionar una fecha');
-    } else {
-        const fechaConsulta = new Date(data.fecha);
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
-        
-        if (fechaConsulta < hoy) {
-            errores.push('La fecha debe ser hoy o posterior');
-        }
-        
-        const maxFecha = new Date();
-        maxFecha.setDate(maxFecha.getDate() + 30);
-        
-        if (fechaConsulta > maxFecha) {
-            errores.push('No se pueden hacer consultas con más de 30 días de anticipación');
-        }
-    }
-    
-    if (errores.length > 0) {
-        mostrarErrorConsulta(errores.join('\n'));
-        return false;
-    }
-    
-    return true;
-}
+function renderizarSedes(sedes) {
+    const sedesContainer = document.getElementById('sedes-container');
+    if (!sedesContainer) return;
 
-// ====================================
-// MOSTRAR RESULTADOS DESDE BACKEND
-// ====================================
-function mostrarResultadosDisponibilidad(data) {
-    let resultContainer = document.getElementById('resultados-disponibilidad');
-    
-    if (!resultContainer) {
-        resultContainer = document.createElement('div');
-        resultContainer.id = 'resultados-disponibilidad';
-        resultContainer.className = 'resultados-container';
-        
-        const consultaSection = document.querySelector('.reservas-section .container');
-        if (consultaSection) {
-            consultaSection.appendChild(resultContainer);
-        }
-    }
-    
-    const turnosDisponibles = data.turnos.filter(turno => turno.disponible);
-    const turnosOcupados = data.turnos.filter(turno => !turno.disponible);
-    
-    resultContainer.innerHTML = `
-        <div class="resultados-header">
-            <h3>Disponibilidad para ${data.deporte.nombre}</h3>
-            <p><strong>Sede:</strong> ${data.sede.nombre} | <strong>Fecha:</strong> ${data.fecha.formateada}</p>
-            <div class="resumen-disponibilidad">
-                <div class="resumen-item">
-                    <span class="numero">${data.resumen.disponibles}</span>
-                    <span class="texto">Disponibles</span>
-                </div>
-                <div class="resumen-item">
-                    <span class="numero">${data.resumen.ocupados}</span>
-                    <span class="texto">Ocupados</span>
-                </div>
-                <div class="resumen-item">
-                    <span class="numero">${data.resumen.porcentajeDisponibilidad}%</span>
-                    <span class="texto">Disponibilidad</span>
-                </div>
-            </div>
-        </div>
-        
-        ${turnosDisponibles.length > 0 ? `
-            <div class="turnos-disponibles">
-                <h4>✅ Turnos Disponibles (${turnosDisponibles.length})</h4>
-                <div class="turnos-grid">
-                    ${turnosDisponibles.map(turno => `
-                        <div class="turno-card disponible" data-turno-id="${turno.id}">
-                            <div class="turno-hora">${turno.horaInicio} - ${turno.horaFin}</div>
-                            <div class="turno-info">
-                                <span class="turno-cancha">Cancha ${turno.cancha.numero}</span>
-                                <span class="turno-precio">${turno.precio.toLocaleString('es-AR')}</span>
-                            </div>
-                            <button class="btn-reservar" onclick="iniciarReserva('${turno.id}')">
-                                Consultar Reserva
-                            </button>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        ` : `
-            <div class="sin-turnos">
-                <h4>😔 No hay turnos disponibles</h4>
-                <p>Intenta con otra fecha o deporte.</p>
-            </div>
-        `}
-        
-        ${turnosOcupados.length > 0 ? `
-            <div class="turnos-ocupados">
-                <h4>❌ Turnos No Disponibles (${turnosOcupados.length})</h4>
-                <div class="turnos-grid">
-                    ${turnosOcupados.map(turno => `
-                        <div class="turno-card ocupado">
-                            <div class="turno-hora">${turno.horaInicio} - ${turno.horaFin}</div>
-                            <div class="turno-info">
-                                <span class="turno-cancha">Cancha ${turno.cancha.numero}</span>
-                                <span class="turno-estado">Ocupado</span>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        ` : ''}
-        
-        <div class="consulta-contacto">
-            <div class="contacto-info">
-                <h4>📞 Para Confirmar tu Reserva</h4>
-                <p><strong>Sede Principal:</strong> Jacinto Ríos 232</p>
-                <p><strong>Reservas:</strong> Presenciales o por WhatsApp</p>
-                <p><strong>💡 Importante:</strong> Las reservas se gestionan desde la sede principal. Puedes pagar el total del turno o dejar una seña.</p>
-                <p><strong>✅ Datos:</strong> Información obtenida en tiempo real desde nuestro sistema.</p>
-            </div>
-        </div>
-    `;
-    
-    // Aplicar estilos a los resultados
-    aplicarEstilosResultados();
-    
-    // Scroll suave hacia los resultados
-    setTimeout(() => {
-        resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-}
-
-// ====================================
-// UTILIDADES
-// ====================================
-function setLoadingState(loading) {
-    appState.cargando = loading;
-    const submitBtn = document.querySelector('#consultaForm button[type="submit"]');
-    
-    if (submitBtn) {
-        if (loading) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = `
-                <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
-                    <span class="spinner"></span>
-                    Consultando al servidor...
+    sedesContainer.innerHTML = sedes.map(sede => `
+        <div class="sede-card">
+            <div class="sede-header">
+                <h3>${sede.nombre}</h3>
+                <span class="sede-badge ${sede.id_sede === 1 ? 'principal' : 'sucursal'}">
+                    ${sede.id_sede === 1 ? 'Principal' : 'Sucursal'}
                 </span>
-            `;
-            submitBtn.classList.add('loading');
+            </div>
             
-            if (!document.getElementById('spin-animation')) {
-                const spinStyle = document.createElement('style');
-                spinStyle.id = 'spin-animation';
-                spinStyle.textContent = `
-                    .spinner {
-                        display: inline-block;
-                        width: 16px;
-                        height: 16px;
-                        border: 2px solid transparent;
-                        border-top: 2px solid currentColor;
-                        border-radius: 50%;
-                        animation: spin 1s linear infinite;
-                    }
-                    
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                `;
-                document.head.appendChild(spinStyle);
-            }
-        } else {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Ver Disponibilidad';
-            submitBtn.classList.remove('loading');
+            <div class="sede-info">
+                <div class="info-item">
+                    <span class="icon">📍</span>
+                    <span>${sede.direccion}</span>
+                </div>
+                
+                ${sede.telefono ? `
+                <div class="info-item">
+                    <span class="icon">📞</span>
+                    <span>${sede.telefono}</span>
+                </div>
+                ` : ''}
+                
+                <div class="info-item">
+                    <span class="icon">🕒</span>
+                    <span>${sede.dias_funcionamiento}</span>
+                </div>
+            </div>
+            
+            <div class="sede-deportes">
+                <h4>Deportes Disponibles</h4>
+                <div id="deportes-sede-${sede.id_sede}" class="deportes-list">
+                    <div class="loading-mini">Cargando deportes...</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    // Cargar deportes para cada sede
+    sedes.forEach(sede => {
+        cargarDeportesPorSede(sede.id_sede);
+    });
+}
+
+async function cargarDeportesPorSede(idSede) {
+    const deportesContainer = document.getElementById(`deportes-sede-${idSede}`);
+    if (!deportesContainer) return;
+
+    try {
+        // Por ahora mostrar todos los deportes para cada sede
+        // En el futuro se puede filtrar por sede específica
+        const response = await ApiClient.get(CONFIG.ENDPOINTS.DEPORTES);
+        
+        if (response.success && response.data) {
+            const deportesHtml = response.data.map(deporte => `
+                <div class="deporte-item">
+                    <span class="deporte-nombre">${deporte.nombre}</span>
+                    <span class="deporte-precio">${formatearPrecio(deporte.precio_base)}</span>
+                </div>
+            `).join('');
+            
+            deportesContainer.innerHTML = deportesHtml;
         }
+        
+    } catch (error) {
+        console.error('Error al cargar deportes por sede:', error);
+        deportesContainer.innerHTML = '<span class="error-mini">Error al cargar deportes</span>';
     }
 }
 
-function mostrarErrorConsulta(mensaje) {
-    const errorModal = document.createElement('div');
-    errorModal.className = 'error-modal';
-    errorModal.innerHTML = `
-        <div class="error-modal-content">
-            <div class="error-icon">⚠️</div>
-            <h3>Error en la consulta</h3>
-            <p>${mensaje.replace(/\n/g, '<br>')}</p>
-            <button class="btn-cerrar-error">Entendido</button>
-        </div>
-        <div class="error-modal-backdrop"></div>
-    `;
-    
-    errorModal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn 0.3s ease-out;
-    `;
-    
-    const modalContent = errorModal.querySelector('.error-modal-content');
-    modalContent.style.cssText = `
-        background: white;
-        padding: 2rem;
-        border-radius: 15px;
-        text-align: center;
-        max-width: 400px;
-        width: 90%;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-        z-index: 10001;
-        position: relative;
-    `;
-    
-    const backdrop = errorModal.querySelector('.error-modal-backdrop');
-    backdrop.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.7);
-        z-index: 10000;
-    `;
-    
-    const cerrarModal = () => {
-        errorModal.style.animation = 'fadeOut 0.3s ease-out';
-        setTimeout(() => {
-            if (document.body.contains(errorModal)) {
-                document.body.removeChild(errorModal);
-            }
-        }, 300);
-    };
-    
-    errorModal.querySelector('.btn-cerrar-error').addEventListener('click', cerrarModal);
-    backdrop.addEventListener('click', cerrarModal);
-    
-    document.addEventListener('keydown', function handleEscape(e) {
-        if (e.key === 'Escape') {
-            cerrarModal();
-            document.removeEventListener('keydown', handleEscape);
+// ====================================
+// CARGA Y RENDERIZADO DE DEPORTES
+// ====================================
+async function cargarDeportes() {
+    const deportesContainer = document.getElementById('deportes-container');
+    if (!deportesContainer) return;
+
+    mostrarCargando(deportesContainer);
+
+    try {
+        const response = await ApiClient.get(CONFIG.ENDPOINTS.DEPORTES);
+        
+        if (response.success && response.data && response.data.length > 0) {
+            appState.deportes = response.data;
+            renderizarDeportes(response.data);
+        } else {
+            throw new Error('No se encontraron deportes disponibles');
         }
-    });
-    
-    document.body.appendChild(errorModal);
+        
+    } catch (error) {
+        console.error('Error al cargar deportes:', error);
+        mostrarError(deportesContainer, 'No se pudieron cargar los deportes. Verifica la conexión con el servidor.');
+    }
 }
 
-function mostrarErrorConexion() {
-    const errorDiv = document.createElement('div');
-    errorDiv.innerHTML = `
-        <div style="
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            text-align: center;
-            z-index: 10000;
-            max-width: 400px;
-            width: 90%;
-        ">
-            <h3 style="color: #e74c3c; margin-bottom: 1rem;">🔌 Sin Conexión al Servidor</h3>
-            <p style="margin-bottom: 1.5rem; color: #666;">
-                No se pudo conectar al backend. Verifica que el servidor esté ejecutándose en puerto 3000.
-            </p>
-            <button onclick="location.reload()" style="
-                background: #e74c3c;
-                color: white;
-                border: none;
-                padding: 0.8rem 1.5rem;
-                border-radius: 6px;
-                cursor: pointer;
-                font-weight: bold;
-            ">
-                Reintentar
+function renderizarDeportes(deportes) {
+    const deportesContainer = document.getElementById('deportes-container');
+    if (!deportesContainer) return;
+
+    const iconosDeportes = {
+        'Padel': '🏓',
+        'Basquet': '🏀',
+        'Squash': '🎾',
+        'Ping Pong': '🏓',
+        'Voley': '🏐'
+    };
+
+    deportesContainer.innerHTML = deportes.map((deporte, index) => `
+        <div class="deporte-card ${index === 0 ? 'featured' : ''}" data-deporte-id="${deporte.id_deporte}">
+            <div class="deporte-icon">
+                ${iconosDeportes[deporte.nombre] || '⚽'}
+            </div>
+            
+            <h3>${deporte.nombre}</h3>
+            
+            <p>${deporte.descripcion}</p>
+            
+            <div class="deporte-details">
+                <span>Duración: ${deporte.duracion_turno} min</span>
+                <span>Desde: ${formatearPrecio(deporte.precio_base)}</span>
+            </div>
+            
+            <button class="btn btn-primary" onclick="seleccionarDeporte(${deporte.id_deporte})">
+                Reservar
             </button>
         </div>
+    `).join('');
+}
+
+// ====================================
+// CARGA DE SERVICIOS ADICIONALES
+// ====================================
+function cargarServiciosAdicionales() {
+    const serviciosContainer = document.getElementById('servicios-container');
+    if (!serviciosContainer) return;
+
+    const servicios = [
+        {
+            icono: '🏆',
+            titulo: 'Torneos Mensuales',
+            descripcion: 'Participa en nuestros torneos organizados cada mes. Competencias para todos los niveles con premios atractivos y un ambiente competitivo pero amigable.'
+        },
+        {
+            icono: '🎯',
+            titulo: 'Clases Particulares',
+            descripcion: 'Mejora tu técnica con instructores certificados. Clases personalizadas para principiantes y avanzados, enfocadas en el desarrollo de habilidades específicas.'
+        },
+        {
+            icono: '👥',
+            titulo: 'Grupos y Eventos',
+            descripcion: 'Organiza eventos corporativos, cumpleaños y reuniones especiales. Paquetes completos con catering opcional y atención personalizada para tu grupo.'
+        },
+        {
+            icono: '🛍️',
+            titulo: 'Tienda Deportiva',
+            descripcion: 'Encuentra todo el equipamiento que necesitas. Paletas, pelotas, indumentaria y accesorios de las mejores marcas, con precios especiales para socios.'
+        },
+        {
+            icono: '🚿',
+            titulo: 'Vestuarios Completos',
+            descripcion: 'Vestuarios amplios y modernos con duchas de agua caliente, lockers seguros y área de descanso. Toallas y artículos de higiene disponibles.'
+        },
+        {
+            icono: '☕',
+            titulo: 'Cafetería y Snacks',
+            descripcion: 'Disfruta de nuestra cafetería con bebidas frías y calientes, snacks saludables y menús ligeros. El lugar perfecto para relajarse después del juego.'
+        }
+    ];
+
+    serviciosContainer.innerHTML = servicios.map(servicio => `
+        <div class="servicio-item">
+            <div class="servicio-icon">${servicio.icono}</div>
+            <div class="servicio-content">
+                <h4>${servicio.titulo}</h4>
+                <p>${servicio.descripcion}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ====================================
+// FUNCIONES DE RESERVA
+// ====================================
+function seleccionarDeporte(idDeporte) {
+    const deporte = appState.deportes.find(d => d.id_deporte === idDeporte);
+    if (!deporte) return;
+
+    appState.deporteSeleccionado = deporte;
+    
+    // Scroll hasta la sección de reservas
+    const reservasSection = document.getElementById('reservas');
+    if (reservasSection) {
+        reservasSection.scrollIntoView({ behavior: 'smooth' });
+        
+        // Actualizar el formulario
+        const selectDeporte = document.getElementById('deporte-select');
+        if (selectDeporte) {
+            selectDeporte.value = idDeporte;
+        }
+    }
+}
+
+async function poblarSelectSedes() {
+    const selectSede = document.getElementById('sede-select');
+    if (!selectSede) return;
+
+    try {
+        if (appState.sedes.length === 0) {
+            const response = await ApiClient.get(CONFIG.ENDPOINTS.SEDES);
+            if (response.success) {
+                appState.sedes = response.data;
+            }
+        }
+
+        selectSede.innerHTML = '<option value="">Selecciona una sede</option>' +
+            appState.sedes.map(sede => 
+                `<option value="${sede.id_sede}">${sede.nombre}</option>`
+            ).join('');
+
+    } catch (error) {
+        console.error('Error al poblar sedes:', error);
+        selectSede.innerHTML = '<option value="">Error al cargar sedes</option>';
+    }
+}
+
+async function poblarSelectDeportes() {
+    const selectDeporte = document.getElementById('deporte-select');
+    if (!selectDeporte) return;
+
+    try {
+        if (appState.deportes.length === 0) {
+            const response = await ApiClient.get(CONFIG.ENDPOINTS.DEPORTES);
+            if (response.success) {
+                appState.deportes = response.data;
+            }
+        }
+
+        selectDeporte.innerHTML = '<option value="">Selecciona un deporte</option>' +
+            appState.deportes.map(deporte => 
+                `<option value="${deporte.id_deporte}">${deporte.nombre} - ${formatearPrecio(deporte.precio_base)}</option>`
+            ).join('');
+
+    } catch (error) {
+        console.error('Error al poblar deportes:', error);
+        selectDeporte.innerHTML = '<option value="">Error al cargar deportes</option>';
+    }
+}
+
+// ====================================
+// INICIALIZACIÓN DE LA APLICACIÓN
+// ====================================
+function mostrarIndicadorConexion() {
+    const indicador = document.createElement('div');
+    indicador.id = 'connection-indicator';
+    indicador.innerHTML = `
         <div style="
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 0.5rem 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: bold;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
             z-index: 9999;
-        "></div>
-    `;
-    
-    document.body.appendChild(errorDiv);
-}
-
-function aplicarEstilosResultados() {
-    if (document.getElementById('estilos-resultados')) return;
-    
-    const style = document.createElement('style');
-    style.id = 'estilos-resultados';
-    style.textContent = `
-        .resultados-container {
-            margin-top: 2rem;
-            padding: 2rem;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            animation: fadeInUp 0.5s ease-out;
-        }
-        
-        .resultados-header {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--background-lighter);
-        }
-        
-        .resultados-header h3 {
-            color: var(--primary-dark);
-            margin-bottom: 0.5rem;
-            font-size: 1.5rem;
-        }
-        
-        .resumen-disponibilidad {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-top: 1rem;
-            flex-wrap: wrap;
-        }
-        
-        .resumen-item {
-            text-align: center;
-            min-width: 80px;
-        }
-        
-        .resumen-item .numero {
-            display: block;
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--accent-red);
-        }
-        
-        .resumen-item .texto {
-            display: block;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-        
-        .turnos-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-        
-        .turno-card {
-            padding: 1.2rem;
-            border-radius: 10px;
-            text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border: 2px solid;
-        }
-        
-        .turno-card.disponible {
-            background: rgba(39, 174, 96, 0.05);
-            border-color: var(--success-green);
-        }
-        
-        .turno-card.ocupado {
-            background: rgba(231, 76, 60, 0.05);
-            border-color: var(--accent-red);
-            opacity: 0.7;
-        }
-        
-        .turno-card.disponible:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(39, 174, 96, 0.2);
-        }
-        
-        .btn-reservar {
-            background: var(--success-green);
-            color: white;
-            border: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            width: 100%;
-            font-size: 0.9rem;
-        }
-        
-        .btn-reservar:hover {
-            background: #219a52;
-            transform: translateY(-1px);
-        }
-        
-        .consulta-contacto {
-            background: var(--background-light);
-            border-radius: 10px;
-            padding: 1.5rem;
-            border-left: 4px solid var(--success-green);
-            margin-top: 2rem;
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-function applyEntranceAnimations() {
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-    
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('fade-in-up');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, observerOptions);
-    
-    document.querySelectorAll('.sede-card, .deporte-card, .servicio-item').forEach(el => {
-        observer.observe(el);
-    });
-}
-
-// ====================================
-// FUNCIONES GLOBALES
-// ====================================
-window.iniciarReserva = function(turnoId) {
-    const sedeInfo = appState.sedes.find(s => s.id === appState.sedeSeleccionada);
-    const deporteInfo = appState.deportes.find(d => d.id === appState.deporteSeleccionado);
-    
-    const mensaje = `Para reservar este turno:
-
-📍 Acércate a: ${sedeInfo?.nombre || 'Sede Principal'} - Jacinto Ríos 232
-🏓 Deporte: ${deporteInfo?.nombre || 'Seleccionado'}
-📅 Fecha: ${appState.fechaSeleccionada}
-
-También puedes reservar por WhatsApp.
-
-💰 Opciones de pago:
-• Pago total del turno
-• Dejar una seña
-
-✅ Datos obtenidos en tiempo real desde nuestro sistema.`;
-    
-    mostrarModalReserva(mensaje, turnoId);
-};
-
-function mostrarModalReserva(mensaje, turnoId) {
-    const modal = document.createElement('div');
-    modal.className = 'reserva-modal';
-    modal.innerHTML = `
-        <div class="reserva-modal-content">
-            <div class="reserva-icon">🏓</div>
-            <h3>Información de Reserva</h3>
-            <div class="mensaje-reserva">${mensaje.replace(/\n/g, '<br>')}</div>
-            <div class="modal-buttons">
-                <button class="btn-entendido">Entendido</button>
-                <button class="btn-nueva-consulta">Nueva Consulta</button>
-            </div>
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        ">
+            🌐 Conectando con el servidor...
         </div>
-        <div class="reserva-modal-backdrop"></div>
     `;
     
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn 0.3s ease-out;
-    `;
+    document.body.appendChild(indicador);
     
-    const modalContent = modal.querySelector('.reserva-modal-content');
-    modalContent.style.cssText = `
-        background: white;
-        padding: 2rem;
-        border-radius: 15px;
-        text-align: center;
-        max-width: 500px;
-        width: 90%;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-        z-index: 10001;
-        position: relative;
-    `;
-    
-    const backdrop = modal.querySelector('.reserva-modal-backdrop');
-    backdrop.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.7);
-        z-index: 10000;
-    `;
-    
-    const mensajeDiv = modal.querySelector('.mensaje-reserva');
-    mensajeDiv.style.cssText = `
-        text-align: left;
-        line-height: 1.6;
-        color: var(--text-secondary);
-        margin: 1.5rem 0;
-        padding: 1rem;
-        background: var(--background-light);
-        border-radius: 8px;
-        border-left: 4px solid var(--success-green);
-    `;
-    
-    const modalButtons = modal.querySelector('.modal-buttons');
-    modalButtons.style.cssText = `
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        margin-top: 1.5rem;
-        flex-wrap: wrap;
-    `;
-    
-    const btnEntendido = modal.querySelector('.btn-entendido');
-    const btnNuevaConsulta = modal.querySelector('.btn-nueva-consulta');
-    
-    [btnEntendido, btnNuevaConsulta].forEach(btn => {
-        btn.style.cssText = `
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        `;
-    });
-    
-    btnEntendido.style.background = 'var(--success-green)';
-    btnEntendido.style.color = 'white';
-    
-    btnNuevaConsulta.style.background = 'var(--background-lighter)';
-    btnNuevaConsulta.style.color = 'var(--primary-dark)';
-    
-    const cerrarModal = () => {
-        modal.style.animation = 'fadeOut 0.3s ease-out';
-        setTimeout(() => {
-            if (document.body.contains(modal)) {
-                document.body.removeChild(modal);
-            }
-        }, 300);
-    };
-    
-    btnEntendido.addEventListener('click', cerrarModal);
-    btnNuevaConsulta.addEventListener('click', () => {
-        cerrarModal();
-        const form = document.getElementById('consultaForm');
-        if (form) {
-            form.reset();
-            setupDateInput();
-        }
-        ocultarInfoSede();
-        
-        const resultContainer = document.getElementById('resultados-disponibilidad');
-        if (resultContainer) {
-            resultContainer.remove();
-        }
-        
-        const reservasSection = document.getElementById('reservas');
-        if (reservasSection) {
-            reservasSection.scrollIntoView({ behavior: 'smooth' });
-        }
-    });
-    
-    backdrop.addEventListener('click', cerrarModal);
-    
-    document.body.appendChild(modal);
-    
-    console.log('📋 Información de reserva para turno:', turnoId, {
-        sede: appState.sedeSeleccionada,
-        deporte: appState.deporteSeleccionado,
-        fecha: appState.fechaSeleccionada
-    });
+    // Verificar conexión después de 3 segundos
+    setTimeout(() => {
+        verificarConexionBackend();
+    }, 3000);
 }
 
-// ====================================
-// FUNCIONES DE DEPURACIÓN
-// ====================================
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    window.TANCAT_DEBUG = {
-        appState: () => appState,
-        testBackend: async () => {
-            try {
-                const conectado = await window.apiClient.testConnection();
-                console.log('🧪 Test de conexión:', conectado ? '✅ Exitoso' : '❌ Falló');
-                return conectado;
-            } catch (error) {
-                console.error('🧪 Error en test:', error);
-                return false;
+async function verificarConexionBackend() {
+    const indicador = document.getElementById('connection-indicator');
+    
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/health`);
+        if (response.ok) {
+            appState.backendDisponible = true;
+            if (indicador) {
+                indicador.style.background = 'linear-gradient(135deg, #27ae60, #229954)';
+                indicador.innerHTML = '✅ Conectado al servidor - Datos en tiempo real';
+                setTimeout(() => {
+                    indicador.remove();
+                }, 2000);
             }
-        },
-        reloadData: () => cargarDatosIniciales(),
-        getConnectionStatus: () => window.apiClient.getConnectionStatus(),
-        clearCache: () => window.apiClient.clearCache()
-    };
-    
-    console.log('🛠️ Modo desarrollo activo. Funciones de debug disponibles en TANCAT_DEBUG');
-}
-
-// ====================================
-// MANEJO DE ERRORES GLOBALES
-// ====================================
-window.addEventListener('error', function(e) {
-    console.error('❌ Error en cliente:', e.error);
-    
-    if (e.error && e.error.message && e.error.message.includes('fetch')) {
-        console.warn('⚠️ Error de red detectado');
-        mostrarEstadoConexion('desconectado');
+        } else {
+            throw new Error('Backend no disponible');
+        }
+    } catch (error) {
+        console.warn('Backend no disponible, usando datos de fallback');
+        if (indicador) {
+            indicador.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
+            indicador.innerHTML = '⚠️ Servidor no disponible - Usando datos de ejemplo';
+            setTimeout(() => {
+                indicador.remove();
+            }, 5000);
+        }
     }
-});
+}
 
-window.addEventListener('unhandledrejection', function(e) {
-    console.error('❌ Promise rechazada:', e.reason);
-    
-    if (e.reason && e.reason.message) {
-        if (e.reason.message.includes('Failed to fetch')) {
-            console.warn('⚠️ Error de conexión detectado');
-            mostrarEstadoConexion('desconectado');
-            appState.backendConectado = false;
+async function inicializarAplicacion() {
+    try {
+        console.log('🚀 Inicializando aplicación TANCAT Cliente...');
+        
+        // Mostrar indicador de conexión
+        mostrarIndicadorConexion();
+        
+        // Cargar datos principales
+        await Promise.all([
+            cargarSedes(),
+            cargarDeportes()
+        ]);
+        
+        // Cargar servicios adicionales
+        cargarServiciosAdicionales();
+        
+        // Poblar selects del formulario
+        await Promise.all([
+            poblarSelectSedes(),
+            poblarSelectDeportes()
+        ]);
+        
+        console.log('✅ Aplicación inicializada correctamente');
+        
+    } catch (error) {
+        console.error('❌ Error al inicializar la aplicación:', error);
+    }
+}
+
+// ====================================
+// EVENT LISTENERS
+// ====================================
+document.addEventListener('DOMContentLoaded', inicializarAplicacion);
+
+// Navegación suave
+document.addEventListener('click', (e) => {
+    if (e.target.matches('a[href^="#"]')) {
+        e.preventDefault();
+        const targetId = e.target.getAttribute('href').substring(1);
+        const targetElement = document.getElementById(targetId);
+        
+        if (targetElement) {
+            targetElement.scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
         }
     }
 });
 
-console.log('📋 cliente-main.js cargado - Conectado al Backend TANCAT');
+// Manejo del formulario de reservas
+document.addEventListener('change', (e) => {
+    if (e.target.id === 'sede-select') {
+        const sedeId = parseInt(e.target.value);
+        if (sedeId) {
+            appState.sedeSeleccionada = appState.sedes.find(s => s.id_sede === sedeId);
+            console.log('Sede seleccionada:', appState.sedeSeleccionada);
+        }
+    }
+    
+    if (e.target.id === 'deporte-select') {
+        const deporteId = parseInt(e.target.value);
+        if (deporteId) {
+            appState.deporteSeleccionado = appState.deportes.find(d => d.id_deporte === deporteId);
+            console.log('Deporte seleccionado:', appState.deporteSeleccionado);
+        }
+    }
+});
+
+// ====================================
+// ESTILOS ADICIONALES PARA CARGA
+// ====================================
+const estilosAdicionales = `
+<style>
+.loading-spinner {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+}
+
+.spinner {
+    border: 4px solid var(--background-lighter);
+    border-top: 4px solid var(--accent-red);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error-message {
+    text-align: center;
+    padding: 2rem;
+    color: var(--accent-red);
+}
+
+.error-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.loading-mini {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.error-mini {
+    color: var(--accent-red);
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.deportes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.deporte-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+.deporte-nombre {
+    font-weight: bold;
+    color: var(--primary-dark);
+}
+
+.deporte-precio {
+    color: var(--accent-red);
+    font-weight: bold;
+}
+
+.servicio-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 1.5rem;
+    background: var(--background-light);
+    border-radius: 10px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid var(--background-lighter);
+}
+
+.servicio-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px var(--shadow-medium);
+}
+
+.servicio-icon {
+    font-size: 2.5rem;
+    margin-right: 1.5rem;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+}
+
+.servicio-content {
+    flex: 1;
+}
+
+.servicio-content h4 {
+    color: var(--primary-dark);
+    margin-bottom: 0.8rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.servicio-content p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+}
+</style>
+`;
+
+// Inyectar estilos adicionales
+document.head.insertAdjacentHTML('beforeend', estilosAdicionales);

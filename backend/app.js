@@ -1,25 +1,28 @@
 /**
- * TANCAT - Sistema de Administración
+ * TANCAT - Backend Application
  * Archivo: app.js
- * Descripción: Configuración principal de la aplicación Express
+ * Descripción: Configuración principal del servidor Express
  */
 
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
-const path = require('path');
+require('dotenv').config();
 
-// ====================================
-// INICIALIZACIÓN DE EXPRESS
-// ====================================
 const app = express();
 
 // ====================================
-// MIDDLEWARES DE SEGURIDAD
+// CONFIGURACIÓN DE VARIABLES DE ENTORNO
+// ====================================
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || 'localhost';
+
+// ====================================
+// MIDDLEWARE DE SEGURIDAD
 // ====================================
 
 // Helmet para headers de seguridad
@@ -30,25 +33,30 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'"],
             scriptSrc: ["'self'"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'"],
-            fontSrc: ["'self'"],
-            objectSrc: ["'none'"],
-            mediaSrc: ["'self'"],
-            frameSrc: ["'none'"],
         },
     },
     crossOriginEmbedderPolicy: false
 }));
 
-// CORS
+// CORS - Configuración para desarrollo y producción
 const corsOptions = {
     origin: function (origin, callback) {
-        const allowedOrigins = process.env.CORS_ORIGIN 
-            ? process.env.CORS_ORIGIN.split(',')
-            : ['http://localhost:5173', 'http://127.0.0.1:5173'];
-        
-        // Permitir requests sin origin (ej: aplicaciones móviles)
+        // Permitir requests sin origin (mobile apps, etc.)
         if (!origin) return callback(null, true);
+        
+        const allowedOrigins = [
+            'http://localhost:5500',
+            'http://127.0.0.1:5500',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+            'http://localhost:5173',
+            'http://127.0.0.1:5173'
+        ];
+        
+        // En desarrollo, permitir todos los orígenes localhost
+        if (NODE_ENV === 'development' && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+            return callback(null, true);
+        }
         
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
@@ -57,278 +65,245 @@ const corsOptions = {
         }
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    maxAge: 86400 // 24 horas
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
 
 app.use(cors(corsOptions));
 
-// Rate Limiting
+// Rate limiting
 const limiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // máximo 100 requests por ventana
     message: {
-        error: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.',
-        retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000) / 1000)
+        success: false,
+        message: 'Demasiadas peticiones, intenta más tarde',
+        data: null
     },
     standardHeaders: true,
-    legacyHeaders: false,
-    skip: (req) => {
-        // Saltar rate limiting en desarrollo para ciertas rutas
-        if (process.env.NODE_ENV === 'development' && req.path.startsWith('/api/docs')) {
-            return true;
-        }
-        return false;
-    }
+    legacyHeaders: false
 });
 
 app.use('/api/', limiter);
 
 // ====================================
-// MIDDLEWARES DE APLICACIÓN
+// MIDDLEWARE DE PARSEO Y COMPRESIÓN
 // ====================================
-
-// Compresión de respuestas
 app.use(compression());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Logging
-if (process.env.NODE_ENV === 'development') {
+// ====================================
+// LOGGING
+// ====================================
+if (NODE_ENV === 'development') {
     app.use(morgan('dev'));
 } else {
     app.use(morgan('combined'));
 }
 
-// Parser de JSON y URL encoded
-app.use(express.json({ 
-    limit: '10mb',
-    strict: true
-}));
-
-app.use(express.urlencoded({ 
-    extended: true, 
-    limit: '10mb' 
-}));
-
-// Servir archivos estáticos
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Trust proxy para aplicaciones detrás de proxy reverso
-app.set('trust proxy', 1);
-
 // ====================================
-// RUTAS DE LA API
+// MIDDLEWARE DE INFORMACIÓN DE REQUEST
 // ====================================
-
-// Health Check
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-        version: '1.0.0',
-        database: 'Connected' // TODO: verificar conexión real
-    });
-});
-
-// Información del API
-app.get('/api', (req, res) => {
-    res.json({
-        name: 'TANCAT API',
-        version: '1.0.0',
-        description: 'Sistema de administración para Complejo Deportivo TANCAT',
-        endpoints: {
-            client: '/api/cliente',
-            admin: '/api/admin',
-            auth: '/api/auth',
-            docs: '/api/docs'
-        },
-        timestamp: new Date().toISOString()
-    });
+app.use((req, res, next) => {
+    req.startTime = Date.now();
+    res.locals.requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    next();
 });
 
 // ====================================
-// IMPORTAR Y USAR RUTAS
+// RUTAS DE HEALTH CHECK PRINCIPAL
 // ====================================
-
-// Función helper para cargar rutas de forma segura
-function loadRoute(routePath, routeName) {
+app.get('/api/health', async (req, res) => {
+    const { Pool } = require('pg');
+    
     try {
-        const route = require(routePath);
-        console.log(`✅ Ruta cargada: ${routeName}`);
-        return route;
-    } catch (error) {
-        console.warn(`⚠️  No se pudo cargar ${routeName}: ${error.message}`);
-        
-        // Retornar un router básico que responda con mensaje de "no implementado"
-        const express = require('express');
-        const fallbackRouter = express.Router();
-        
-        fallbackRouter.all('*', (req, res) => {
-            res.status(501).json({
-                success: false,
-                message: `${routeName} - Funcionalidad no implementada aún`,
-                endpoint: req.originalUrl,
-                method: req.method,
-                timestamp: new Date().toISOString()
-            });
+        // Configurar pool temporal para health check
+        const pool = new Pool({
+            host: process.env.DB_HOST || 'localhost',
+            port: process.env.DB_PORT || 5432,
+            database: process.env.DB_NAME || 'tancat_db',
+            user: process.env.DB_USER || 'postgres',
+            password: process.env.DB_PASSWORD,
+            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+            connectionTimeoutMillis: 5000
         });
-        
-        return fallbackRouter;
-    }
-}
 
-// Cargar rutas principales (EXISTENTES)
-const clienteRoutes = loadRoute('./routes/clientes', 'Cliente Routes');
+        const result = await pool.query('SELECT NOW() as timestamp, version() as pg_version');
+        await pool.end();
+        
+        const healthData = {
+            status: 'OK',
+            timestamp: new Date().toISOString(),
+            environment: NODE_ENV,
+            database: 'connected',
+            database_timestamp: result.rows[0].timestamp,
+            postgresql_version: result.rows[0].pg_version.split(' ')[0],
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            version: '1.0.0'
+        };
+
+        res.status(200).json({
+            success: true,
+            message: 'Servicio funcionando correctamente',
+            data: healthData,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Health check failed:', error);
+        
+        const healthData = {
+            status: 'ERROR',
+            timestamp: new Date().toISOString(),
+            environment: NODE_ENV,
+            database: 'disconnected',
+            error: error.message,
+            uptime: process.uptime(),
+            version: '1.0.0'
+        };
+
+        res.status(503).json({
+            success: false,
+            message: 'Error en el servicio',
+            data: healthData,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// ====================================
+// IMPORTAR Y CONFIGURAR RUTAS
+// ====================================
+
+// Rutas del cliente (frontend público)
+const clienteRoutes = require('./routes/clientes');
 app.use('/api/cliente', clienteRoutes);
 
-const authRoutes = loadRoute('./routes/auth', 'Auth Routes');
-app.use('/api/auth', authRoutes);
-
-const adminRoutes = loadRoute('./routes/admin', 'Admin Routes');
-app.use('/api/admin', adminRoutes);
-
-const reservasRoutes = loadRoute('./routes/reservas', 'Reservas Routes');
-app.use('/api/reservas', reservasRoutes);
-
-// Cargar rutas secundarias (OPCIONALES)
-const torneosRoutes = loadRoute('./routes/torneos', 'Torneos Routes');
-app.use('/api/torneos', torneosRoutes);
-
-const inventarioRoutes = loadRoute('./routes/inventario', 'Inventario Routes');
-app.use('/api/inventario', inventarioRoutes);
-
-const reportesRoutes = loadRoute('./routes/reportes', 'Reportes Routes');
-app.use('/api/reportes', reportesRoutes);
-
-// NOTA: ventas.js removido - no se carga
-
-// ====================================
-// DOCUMENTACIÓN API (SIN SWAGGER)
-// ====================================
-app.get('/api/docs', (req, res) => {
+// Ruta de información general de la API
+app.get('/api', (req, res) => {
     res.json({
-        name: 'TANCAT API',
-        version: '1.0.0',
-        description: 'Sistema de administración para Complejo Deportivo TANCAT',
-        endpoints: {
-            health: '/api/health',
-            sedes: '/api/cliente/sedes',
-            deportes: '/api/cliente/deportes',
-            disponibilidad: '/api/cliente/consulta-disponibilidad',
-            auth: '/api/auth',
-            admin: '/api/admin'
+        success: true,
+        message: 'TANCAT API - Sistema de Administración Complejo Deportivo',
+        data: {
+            version: '1.0.0',
+            environment: NODE_ENV,
+            endpoints: {
+                health: '/api/health',
+                cliente: {
+                    sedes: '/api/cliente/sedes',
+                    deportes: '/api/cliente/deportes',
+                    canchas: '/api/cliente/canchas',
+                    combinaciones: '/api/cliente/combinaciones-disponibles',
+                    disponibilidad: '/api/cliente/consulta-disponibilidad',
+                    torneos: '/api/cliente/torneos',
+                    estadisticas: '/api/cliente/estadisticas'
+                }
+            },
+            documentation: '/api/docs'
         },
         timestamp: new Date().toISOString()
     });
 });
 
-console.log('📖 Documentación básica disponible en /api/docs');
+// Documentación básica de la API
+app.get('/api/docs', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Documentación de la API TANCAT',
+        data: {
+            title: 'TANCAT API Documentation',
+            version: '1.0.0',
+            baseURL: `http://${HOST}:${PORT}/api`,
+            endpoints: {
+                'GET /health': 'Verificar estado del servicio',
+                'GET /cliente/sedes': 'Obtener todas las sedes activas',
+                'GET /cliente/sedes/:id': 'Obtener información de una sede específica',
+                'GET /cliente/deportes': 'Obtener todos los deportes disponibles',
+                'GET /cliente/deportes/:id': 'Obtener información de un deporte específico',
+                'GET /cliente/canchas': 'Obtener canchas (filtrar por sede_id y/o deporte_id)',
+                'GET /cliente/combinaciones-disponibles': 'Obtener combinaciones sede-deporte disponibles',
+                'GET /cliente/consulta-disponibilidad': 'Consultar turnos disponibles (requiere sede_id, deporte_id, fecha)',
+                'GET /cliente/torneos': 'Obtener torneos próximos y activos',
+                'GET /cliente/estadisticas': 'Obtener estadísticas básicas del complejo'
+            },
+            examples: {
+                'Consultar disponibilidad': `${req.protocol}://${req.get('host')}/api/cliente/consulta-disponibilidad?sede_id=1&deporte_id=1&fecha=2025-08-15`,
+                'Obtener canchas por sede': `${req.protocol}://${req.get('host')}/api/cliente/canchas?sede_id=1`,
+                'Obtener canchas por deporte': `${req.protocol}://${req.get('host')}/api/cliente/canchas?deporte_id=1`
+            }
+        },
+        timestamp: new Date().toISOString()
+    });
+});
 
 // ====================================
 // MIDDLEWARE DE MANEJO DE ERRORES
 // ====================================
 
-// Middleware para rutas no encontradas
+// Manejar rutas no encontradas
 app.use('*', (req, res) => {
     res.status(404).json({
         success: false,
-        message: `Ruta ${req.originalUrl} no encontrada`,
-        error: 'NOT_FOUND',
-        availableEndpoints: [
-            '/api/health',
-            '/api/cliente/*',
-            '/api/admin/*', 
-            '/api/auth/*',
-            '/api/reservas/*',
-            '/api/torneos/*',
-            '/api/inventario/*',
-            '/api/reportes/*',
-            '/api/docs'
-        ],
+        message: `Ruta no encontrada: ${req.method} ${req.originalUrl}`,
+        data: null,
         timestamp: new Date().toISOString()
     });
 });
 
-// Middleware de manejo de errores global
+// Manejar errores generales
 app.use((error, req, res, next) => {
-    console.error('❌ Error no manejado:', error);
+    console.error('Error no manejado:', error);
     
-    // Error de validación
-    if (error.name === 'ValidationError') {
-        return res.status(400).json({
-            success: false,
-            message: 'Error de validación',
-            error: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
+    // No enviar información sensible en producción
+    const errorMessage = NODE_ENV === 'production' 
+        ? 'Error interno del servidor' 
+        : error.message;
     
-    // Error de CORS
-    if (error.message && error.message.includes('CORS')) {
-        return res.status(403).json({
-            success: false,
-            message: 'Acceso denegado por CORS',
-            error: 'CORS_ERROR',
-            timestamp: new Date().toISOString()
-        });
-    }
-    
-    // Error de rate limiting
-    if (error.status === 429) {
-        return res.status(429).json({
-            success: false,
-            message: 'Demasiadas solicitudes',
-            error: 'RATE_LIMIT_EXCEEDED',
-            retryAfter: error.retryAfter,
-            timestamp: new Date().toISOString()
-        });
-    }
-    
-    // Error de base de datos PostgreSQL
-    if (error.code && error.code.startsWith('23')) {
-        let message = 'Error de base de datos';
-        
-        switch (error.code) {
-            case '23505':
-                message = 'El registro ya existe (duplicado)';
-                break;
-            case '23503':
-                message = 'Referencia inválida en los datos';
-                break;
-            case '23502':
-                message = 'Campo requerido faltante';
-                break;
-            case '23514':
-                message = 'Violación de restricción de datos';
-                break;
-        }
-        
-        return res.status(400).json({
-            success: false,
-            message: message,
-            error: 'DATABASE_ERROR',
-            code: error.code,
-            timestamp: new Date().toISOString()
-        });
-    }
-    
-    // Error genérico del servidor
-    const statusCode = error.status || error.statusCode || 500;
-    
-    res.status(statusCode).json({
+    res.status(error.status || 500).json({
         success: false,
-        message: statusCode === 500 ? 'Error interno del servidor' : error.message,
-        error: process.env.NODE_ENV === 'development' ? {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
-        } : 'INTERNAL_SERVER_ERROR',
-        timestamp: new Date().toISOString()
+        message: errorMessage,
+        data: null,
+        timestamp: new Date().toISOString(),
+        requestId: res.locals.requestId
     });
 });
 
 // ====================================
-// EXPORTAR APLICACIÓN
+// MANEJO DE PROCESOS
 // ====================================
-module.exports = app;
+
+// Manejo de promesas rechazadas
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Promesa rechazada no manejada:', reason);
+    console.error('En promesa:', promise);
+});
+
+// Manejo de excepciones no capturadas
+process.on('uncaughtException', (error) => {
+    console.error('Excepción no capturada:', error);
+    console.error('El proceso se cerrará...');
+    process.exit(1);
+});
+
+// Manejo de señales de cierre
+const gracefulShutdown = (signal) => {
+    console.log(`\n🛑 Señal ${signal} recibida. Cerrando servidor...`);
+    
+    // Aquí puedes cerrar conexiones a base de datos, etc.
+    process.exit(0);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// ====================================
+// EXPORTAR APP
+// ====================================
+module.exports = {
+    app,
+    PORT,
+    HOST,
+    NODE_ENV
+};
